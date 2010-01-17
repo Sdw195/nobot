@@ -1,0 +1,188 @@
+#!/usr/bin/env python
+"""
+nobot - The "Not Our Bot" Bot
+
+A lot of the source is borrowed from Phenny:
+Copyright 2008, Sean B. Palmer, inamidst.com
+Licensed under the Eiffel Forum License 2.
+
+http://inamidst.com/phenny/
+"""
+
+import sys, os, imp, getopt, logging, ctypes
+from textwrap import dedent as trim
+
+DEFAULT_CONFIG = """
+server      = 'irc.example.net'
+serverpass  = 'yourserverpassword'
+
+nick        = 'nobot'
+password    = 'yournickpassword'
+
+channels    = ['#example', '#test']
+owner       = 'yournickname'
+prefix      = '@'
+
+admins      = [owner, 'someoneyoutrust']
+
+## list of modules to disable
+exclude = ['admin']
+
+## list of mods to enable
+enable = []
+
+"""
+
+class Main():
+
+    version = '0.0.1'
+    verbosity = 50
+    executable = os.path.basename(sys.argv[0])
+    basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    configdir = os.path.join(basedir, "config")
+    datadir = os.path.join(basedir, "data")
+    configfile = os.path.join(configdir, "default.py")
+    moduledir = os.path.join(basedir, "modules")
+
+    def __init__(self):
+
+        self.log = log
+
+        ## get some options
+        shortopts = "hVvc:"
+        longopts = ["help", "version", "verbose", "config="]
+        try:
+            optlist, arglist = getopt.getopt(sys.argv[1:], shortopts, longopts)
+        except getopt.GetoptError, e:
+            ## let's be helpful and informative
+            log.critical("Unknown option: %s" % e.opt)
+            self.print_short_usage()
+            sys.exit(2)
+
+        verbosity = self.verbosity
+
+        for opt, arg in optlist:
+            if opt in ['-h', '--help']:
+                self.print_usage()
+                sys.exit(0)
+            elif opt in ['-V', '--version']:
+                self.print_version()
+                sys.exit(0)
+            elif opt in ['-v', '--verbose']:
+                verbosity = verbosity - 10
+            elif opt in ['-c', '--config']:
+                self.configfile = os.path.abspath(arg)
+
+        ## set new verbosity?
+        if verbosity <> self.verbosity:
+            if verbosity < 10:
+                verbosity = 10
+            self.verbosity = verbosity
+            log.setLevel(verbosity)
+
+        ## require python2.4 or later
+        self.check_python_version()
+        ## require config file, or make it and exit
+        self.check_configfile()
+
+        ## load the configurations
+        name = os.path.basename(self.configfile[:-3])
+        self.config = imp.load_source(name, self.configfile)
+        ## set some config vars we always want available
+        self.config.configfile = self.configfile
+        self.config.configname = name
+        self.config.basedir = self.basedir
+        self.config.datadir = self.datadir
+        self.config.moduledir = self.moduledir
+
+        ## set some default config
+        if not hasattr(self.config, 'prefix'):
+            self.config.prefix = r'@'
+
+        if not hasattr(self.config, 'name'):
+            self.config.name = 'nobot'
+
+        if not hasattr(self.config, 'port'):
+            self.config.port = 6667
+
+        if not hasattr(self.config, 'serverpass'):
+            self.config.serverpass = None
+
+        if not hasattr(self.config, 'password'):
+            self.config.password = None
+
+        if self.config.server == 'irc.example.net':
+            log.fatal("Edit config file first: %s" % self.config.filename)
+            sys.exit(1)
+
+        ## XXX: this needs to be inlined (to get rid of __init__.py
+        ## load bot
+        try:
+            from __init__ import run
+        except ImportError, e:
+            log.fatal("Error: Could not find bot to import")
+            sys.exit(1)
+
+        ## set proccess name
+        ## XXX: this will fail on windows
+        libc = ctypes.CDLL("libc.so.6")
+        libc.prctl(15, "%s-%s" % (self.executable, self.config.configname), 0, 0, 0)
+
+        ## initialise and run bot
+        run(self)
+
+    def create_configfile(self):
+        log.info('Creating config file %s...' % self.configfile)
+        ## check for configdir, and create if missing
+        if not os.path.exists(self.configdir):
+            os.mkdir(self.configdir)
+        try:
+            with open(self.configfile, 'w') as f:
+                f.write(DEFAULT_CONFIG)
+        except Exception, e:
+            log.fatal('Error creating %s:' % self.configfile)
+            sys.exit(1)
+
+        print 'Edit %s, and run %s! Enjoy.' % (self.configfile, self.executable)
+        sys.exit(0)
+
+    def check_configfile(self):
+        if not os.access(self.configfile, os.F_OK | os.W_OK):
+            self.create_configfile()
+
+    def check_python_version(self):
+        if sys.version_info < (2, 4):
+            log.fatal('Error: Requires Python 2.4 or later, from www.python.org')
+            sys.exit(1)
+
+    def print_version(self):
+        print "%s version %s" % (self.executable, self.version)
+
+    def print_short_usage(self):
+        print "%s [options]" % self.executable
+
+    def print_usage(self):
+        self.print_version()
+        self.print_short_usage()
+        print ""
+
+        print "-c, --config                 Specify config file to use"
+        print "-h, --help                   give this help list"
+        print "-V, --version                print program version"
+        print "-v, --verbose                increase verbosity. Can recur"
+
+# Setting up logging
+logging.addLevelName(10, 'debug')
+logging.addLevelName(20, 'info')
+logging.addLevelName(30, 'warning')
+logging.addLevelName(40, 'error')
+logging.addLevelName(50, 'fatal')
+
+log = logging.getLogger(__name__)
+log_console = logging.StreamHandler()
+log_console_format = logging.Formatter('%(levelname)s: %(message)s')
+log_console.setFormatter(log_console_format)
+log.addHandler(log_console)
+
+if __name__ == '__main__':
+    Main()
