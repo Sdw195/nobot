@@ -1,6 +1,6 @@
-from lib.bot import __command__
+from lib.bot import command
 
-class List(__command__):
+class Help(command):
 
     def run(self, bot, data):
         # This function only works in private message

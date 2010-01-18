@@ -1,6 +1,6 @@
-from lib.bot import __command__
+from lib.bot import command
 
-class Startup(__command__):
+class Startup(command):
 
     regex = r'.*'
     event = '251'

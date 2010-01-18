@@ -15,7 +15,7 @@ class __metamodule__(type):
         else:
             cls.modules.append(cls)
 
-class __command__():
+class command():
 
     name = None
     example = None
@@ -32,12 +32,10 @@ class __command__():
     # Internal
     __metaclass__ = __metamodule__
 
-    def __call__(self, command, bot, data):
+    def __call__(self, cmd, bot, data):
         """Call the run method of specified command"""
-        instance = command()
+        instance = cmd()
         instance.run(bot, data)
-
-command = __command__()
 
 def decode(bytes):
     try:
@@ -60,7 +58,10 @@ class Oracus(irc.Bot):
         self.stats = {}
         self.setup()
 
-    def setup(self):
+    def setup(self, _reload=False):
+
+        if _reload:
+            command.modules = []
 
         modules = []
         ## load only enabled
@@ -80,23 +81,16 @@ class Oracus(irc.Bot):
 
         ## load modules
         for module in modules:
-            self.register(module)
+            self.load_module(module, _reload=_reload)
 
         # if modules:
-        if command.modules:
+        if modules:
             self.log.info("Registered modules: %s" % ", ".join(modules))
+            self.modules = modules
         else:
             self.log.warning("Couldn't find any commands")
 
         self.bind_commands()
-
-    def register(self, module):
-        "Load a file, or reload it if changed (eventually)"
-        filename = os.path.join(self.config.moduledir, "%s.py" % module)
-        try:
-            imp.load_source(module, filename)
-        except Exception, e:
-            self.log.error("Error loading %s: %s" % (module, e))
 
     def bind_commands(self):
 
@@ -118,9 +112,12 @@ class Oracus(irc.Bot):
 
             cmd.event = cmd.event.upper()
 
-            if not cmd.regex:
-                cmd.regex = r"^ *(?:%(nick)s:|%(prefix)s) *(?:%(cmd)s)" + cmd.rule + "$"
-            cmd.regex = re.compile(replace(cmd.regex, values))
+            if cmd.regex:
+                cmd.matcher = cmd.regex
+            else:
+                cmd.matcher = r"^ *(?:%(nick)s:|%(prefix)s) *(?:%(cmd)s)" + cmd.rule + "$"
+
+            cmd.matcher = re.compile(replace(cmd.matcher, values))
 
 
     def wrapped(self, origin, text, match):
@@ -179,9 +176,9 @@ class Oracus(irc.Bot):
             if event != cmd.event:
                 continue
 
-            self.log.debug("TESTING COMMAND %s %s %s" % (cmd.name, cmd.event, cmd.regex.pattern))
+            self.log.debug("TESTING COMMAND %s %s %s" % (cmd.name, cmd.event, cmd.matcher.pattern))
 
-            match = cmd.regex.match(text)
+            match = cmd.matcher.match(text)
             if match:
 
                 self.log.debug("MATCHED COMMAND %s" % cmd.name)
@@ -194,12 +191,28 @@ class Oracus(irc.Bot):
 
                 try:
                     targs = (cmd, bot, data)
-                    if cmd.thread:
-                        t = threading.Thread(target=command, args=targs)
+                    dispatch = command()
+                    if False:#cmd.thread:
+                        t = threading.Thread(target=dispatch, args=targs)
                         t.start()
                     else:
-                        command(*targs)
+                        dispatch(*targs)
                 except Exception, e:
                     self.error(origin, e)
 
                 break
+
+    def load_module(self, module, filename=None, _reload=False):
+        ## this exists for easy access from modules
+        if filename:
+            return imp.load_source(module, filename)
+
+        try:
+            mod = getattr(__import__('modules.%s' % module), module)
+        except ImportError, e:
+            self.log.error("Error loading %s: %s" % (module, e))
+        if _reload:
+            self.log.debug("Reloading %s" % mod)
+            reload(mod)
+        # except:
+        return mod

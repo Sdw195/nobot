@@ -1,4 +1,4 @@
-from lib.bot import __command__
+from lib.bot import command
 from lib.tools import Database
 
 import os, re, datetime, time, sqlite3
@@ -77,7 +77,7 @@ class FactsDB(Database):
         return (fact, created)
 
 
-class Fact(__command__):
+class Fact(command):
 
     rule = r"(.*)"
 
