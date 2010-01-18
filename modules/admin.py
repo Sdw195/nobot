@@ -38,9 +38,7 @@ class Quit(command):
     limit = ['admin']
 
     def run(self, bot, data):
-        if input.sender.startswith('#'):
-            return
-        if input.owner:
+        if data.owner:
             bot.write(['QUIT'])
             __import__('os')._exit(0)
 
