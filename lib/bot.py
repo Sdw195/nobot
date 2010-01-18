@@ -129,14 +129,11 @@ class Oracus(irc.Bot):
             def __getattr__(self, attr):
                 sender = origin.sender or text
                 if attr == 'reply':
-                    return (lambda msg:
-                        self.bot.msg(sender, origin.nick + ': ' + msg))
+                    return lambda msg: self.bot.msg(sender, origin.nick + ': ' + msg)
                 elif attr == 'say':
                     return lambda msg: self.bot.msg(sender, msg)
                 elif attr == 'private':
-                    ## XXX: implement a setting where we can control
-                    ## whether to send in a query or notice
-                    return lambda msg: self.bot.notice(sender, msg)
+                    return lambda msg: self.bot.msg(origin.nick, msg)
                 return getattr(self.bot, attr)
 
         return BotWrapper(self)
