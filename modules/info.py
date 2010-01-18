@@ -2,30 +2,29 @@ from lib.bot import command
 
 class Help(command):
 
-    def run(self, bot, data):
-        # This function only works in private message
-        if data.sender.startswith('#'):
-            return
-        names = []
-        for cmd in self.modules:
-            if cmd.action:
-                names.append(cmd.name)
-        bot.private(", ".join(names))
-
-class Help(__command__):
-
-    rule = r' +([A-Za-z]+)'
-    example = '%(nick)s: help list'
+    rule = r' *([A-Za-z]+)?'
+    example = '%(nick)s: help list or just @help'
 
     def run(self, bot, data):
-        """Shows a command's documentation, and possibly an example."""
+        """List commands or show help on individual commands"""
 
-        name = data.group(1).lower()
-        bot.log.debug("Help %s" % name)
-
-        for cmd in self.modules:
-            if name == cmd.name:
-                if cmd.__doc__:
-                    bot.private(cmd.__doc__)
-                if not cmd.__doc__ == cmd.example:
-                    bot.private(cmd.example)
+        name = data.group(1)
+        ## show individual help
+        if name:
+            name = name.lower()
+            for cmd in self.modules:
+                if name == cmd.name and bot.permission(cmd.limit, data):
+                    if cmd.__doc__:
+                        bot.private(cmd.__doc__)
+                    if not cmd.__doc__ == cmd.example:
+                        bot.private(cmd.example)
+                else:
+                    bot.private("No command with that name")
+        ## show all commands
+        else:
+            names = []
+            for cmd in self.modules:
+                if cmd.action and bot.permission(cmd.limit, data):
+                    bot.log.debug("Listing name of %s: %s" % (cmd, cmd.name))
+                    names.append(cmd.name)
+            bot.private("Available commands %s" % ", ".join(names))
