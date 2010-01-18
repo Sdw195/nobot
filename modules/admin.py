@@ -20,14 +20,18 @@ class Join(command):
 
 class Part(command):
 
+    rule = r" *(#{1,}\S+)?"
     example = '%(prefix)spart #example'
     limit = ['admin']
 
     def run(self, bot, data):
-        if data.sender.startswith('#'):
-            return
         if data.admin:
-            bot.write(['PART'], data.group(1))
+            channel = data.group(1)
+            if not channel and data.sender.startswith('#'):
+                channel = data.sender
+            channel = channel.strip()
+
+            bot.write(['PART'], channel)
 
 class Quit(command):
 
