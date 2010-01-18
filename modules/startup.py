@@ -7,10 +7,10 @@ class Startup(command):
     action = False
 
     def run(self, bot, data):
-        if hasattr(bot.config, 'serverpass'):
+        if hasattr(bot.config, 'serverpass') and bot.config.serverpass:
             bot.write(('PASS', bot.config.serverpass))
 
-        if hasattr(bot.config, 'password'):
+        if hasattr(bot.config, 'password') and bot.config.password:
             bot.msg('NickServ', 'IDENTIFY %s' % bot.config.password)
             __import__('time').sleep(5)
 
