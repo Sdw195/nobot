@@ -5,12 +5,14 @@ class Join(command):
 
     rule = r" +(#\S+)(?: *(\S+))?"
     example = '%(prefix)sjoin #example or %(prefix)sjoin #example key'
+    limit = ['admin']
 
     def run(self, bot, data):
         if data.sender.startswith('#'):
             return
         if data.admin:
             channel, key = data.group(1), data.group(2)
+
             if not key:
                 bot.write(['JOIN'], channel)
             else:
@@ -19,6 +21,7 @@ class Join(command):
 class Part(command):
 
     example = '%(prefix)spart #example'
+    limit = ['admin']
 
     def run(self, bot, data):
         if data.sender.startswith('#'):
@@ -27,6 +30,8 @@ class Part(command):
             bot.write(['PART'], data.group(1))
 
 class Quit(command):
+
+    limit = ['admin']
 
     def run(self, bot, data):
         if input.sender.startswith('#'):
@@ -38,6 +43,7 @@ class Quit(command):
 class Say(command):
 
     rule = r" +(#?\S+) (.+)"
+    limit = ['admin']
 
     def run(self, bot, data):
         if data.sender.startswith('#'):
@@ -49,6 +55,7 @@ class Say(command):
 class Me(command):
 
     rule = r" +(#?\S+) (.+)"
+    limit = ['admin']
 
     def run(self, bot, data):
         if data.sender.startswith('#'):

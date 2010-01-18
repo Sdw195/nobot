@@ -24,6 +24,7 @@ class command():
     rule = r"( +(.*))?"
     regex = None
     action = True
+    limit = []
 
     # main method
     def run(self, bot, data): pass
@@ -216,3 +217,12 @@ class Oracus(irc.Bot):
             reload(mod)
         # except:
         return mod
+
+    def permission(self, limits, data):
+        if not limits:
+            return True;
+        for limit in limits:
+            if not getattr(data, limit):
+                return False
+        return True
+
