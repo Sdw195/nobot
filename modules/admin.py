@@ -14,9 +14,9 @@ class Join(command):
             channel, key = data.group(1), data.group(2)
 
             if not key:
-                bot.write(['JOIN'], channel)
+                bot.write(['JOIN'], channel.strip())
             else:
-                bot.write(['JOIN', channel, key])
+                bot.write(['JOIN', channel.strip(), key.strip()])
 
 class Part(command):
 
