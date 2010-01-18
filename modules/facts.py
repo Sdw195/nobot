@@ -69,7 +69,7 @@ class FactsDB(Database):
         try:
             fact = res[int(index) - 1]
         except IndexError:
-            raise RuntimeError("Index is out of bounds")
+            raise RuntimeError("Index out of range")
 
         count = len(res)
         created = fact[3]
@@ -113,7 +113,7 @@ class Fact(command):
     def learn(self, text):
         """Learn a new keyword. Key and value are separated by a full stop"""
 
-        regex = re.compile(r" *(.*)\.(?:\[(\d+)\])?(?: +(.*))")
+        regex = re.compile(r" *(.*?)\.(?:\[(\d+)\])?(?: +(.*))")
         match = regex.match(text)
         try:
             if match:
