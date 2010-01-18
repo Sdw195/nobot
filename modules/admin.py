@@ -66,6 +66,17 @@ class Me(command):
             msg = '\x01ACTION %s\x01' % data.group(2)
             bot.msg(data.group(1), msg)
 
+class Test(command):
+
+    rule = r"(.*)"
+    limit = ['admin']
+
+    def run(self, bot, data):
+        text = data.group(1)
+        if not text:
+            text = "Test text"
+        bot.say(text.strip())
+
 class Reload(command):
     """Reloads modules and config"""
 
