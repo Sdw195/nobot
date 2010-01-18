@@ -168,7 +168,7 @@ class Oracus(irc.Bot):
         bytes, event, args = args[0], args[1], args[2:]
         text = decode(bytes)
 
-        self.log.info("DISPATCH %s %s %s" % (origin.sender, event, text))
+        self.log.debug("DISPATCH %s %s %s" % (origin.sender, event, text))
 
         for cmd in command.modules:
             if event != cmd.event:
@@ -179,7 +179,7 @@ class Oracus(irc.Bot):
             match = cmd.matcher.match(text)
             if match:
 
-                self.log.debug("MATCHED COMMAND %s" % cmd.name)
+                self.log.info("MATCHED COMMAND %s: %s %s %s" % (cmd.name, origin.sender, event, text))
 
                 if self.limit(origin, cmd):
                     continue
