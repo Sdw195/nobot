@@ -7,7 +7,7 @@ import lib.irc as irc
 
 home = os.getcwd()
 
-class __metamodule__(type):
+class __metacommand__(type):
 
     def __init__(cls, name, bases, attrs):
         if not hasattr(cls, 'modules'):
@@ -15,23 +15,28 @@ class __metamodule__(type):
         else:
             cls.modules.append(cls)
 
+        ## set up this command
+        cls._name_ = name.lower()
+        cls._path_ = "%s.%s" % (cls.__module__.partition('.')[2], cls._name_)
+        cls._event_ = cls.event.upper()
+
 class command():
 
-    name = None
     example = None
     event = "PRIVMSG"
     thread = True
     rule = r"( +(.*))?"
     regex = None
     action = True
-    limit = []
 
     # main method
     def run(self, bot, data): pass
 
     ############################################################
     # Internal
-    __metaclass__ = __metamodule__
+    __metaclass__ = __metacommand__
+
+    _regex_ = r""
 
     def __call__(self, cmd, bot, data):
         """Call the run method of specified command"""
@@ -55,8 +60,10 @@ class Oracus(irc.Bot):
         self.obj = obj
         self.config = obj.config
         self.log = obj.log
-        self.doc = {}
-        self.stats = {}
+        # self.doc = {}
+        # self.stats = {}
+        self.substitutions = {"nick": self.nick, "prefix": self.config.prefix}
+
         self.setup()
 
     def setup(self, _reload=False):
@@ -93,32 +100,23 @@ class Oracus(irc.Bot):
 
         self.bind_commands()
 
-    def bind_commands(self):
+    def interpolate(self, text, cmd=None):
+        values = self.substitutions
+        if cmd:
+            values['cmd'] = cmd._name_
+        return text % values
 
-        def replace(pattern, values):
-            return pattern % values
+    def bind_commands(self):
 
         for cmd in command.modules:
 
-            if not cmd.name:
-                cmd.name = cmd.__name__.lower()
-
-            values = {"nick": self.nick, "prefix": self.config.prefix, "cmd": cmd.name}
-
-            if not cmd.example:
-                if cmd.__doc__:
-                    cmd.example = replace(cmd.__doc__, values)
-            else:
-                cmd.example = replace(cmd.example, values)
-
-            cmd.event = cmd.event.upper()
-
+            ## build the regex we will match
             if cmd.regex:
-                cmd.matcher = cmd.regex
+                cmd._regex_ = cmd.regex
             else:
-                cmd.matcher = r"^ *(?:%(nick)s:|%(prefix)s) *(?:%(cmd)s)" + cmd.rule + "$"
+                cmd._regex_ = r"^ *(?:%(nick)s.?|%(prefix)s) *(?:%(cmd)s)" + cmd.rule + "$"
 
-            cmd.matcher = re.compile(replace(cmd.matcher, values))
+            cmd._regex_ = re.compile(self.interpolate(cmd._regex_, cmd))
 
 
     def wrapped(self, origin, text, match):
@@ -142,6 +140,7 @@ class Oracus(irc.Bot):
         class CommandInput(unicode):
             def __new__(cls, text, origin, bytes, match, event, args):
                 s = unicode.__new__(cls, text)
+                s.origin = origin
                 s.sender = origin.sender
                 s.nick = origin.nick
                 s.event = event
@@ -156,13 +155,12 @@ class Oracus(irc.Bot):
 
         return CommandInput(text, origin, bytes, match, event, args)
 
-    def limit(self, origin, cmd):
-        if origin.sender and origin.sender.startswith('#'):
-            if hasattr(self.config, 'limit'):
-                limits = self.config.limit.get(origin.sender)
-                if limits and (cmd.__module__ not in limits):
-                    return True
-        return False
+    def access(self, origin, cmd):
+        if origin.nick and hasattr(self.config, 'access'):
+            for path, nicks in self.config.access.iteritems():
+                if re.match(path, cmd._path_) and not origin.nick in nicks :
+                    return False
+        return True
 
     def dispatch(self, origin, args):
         bytes, event, args = args[0], args[1], args[2:]
@@ -171,17 +169,18 @@ class Oracus(irc.Bot):
         self.log.debug("DISPATCH %s %s %s" % (origin.sender, event, text))
 
         for cmd in command.modules:
-            if event != cmd.event:
+            if event != cmd._event_:
                 continue
 
-            self.log.debug("TESTING COMMAND %s %s %s" % (cmd.name, cmd.event, cmd.matcher.pattern))
+            self.log.debug("TESTING COMMAND %s %s %s" % (cmd._name_, cmd.event, cmd._regex_.pattern))
 
-            match = cmd.matcher.match(text)
+            match = cmd._regex_.match(text)
             if match:
 
-                self.log.info("MATCHED COMMAND %s: %s %s %s" % (cmd.name, origin.sender, event, text))
+                self.log.info("MATCHED COMMAND %s: %s %s %s" % (cmd._name_, origin.sender, event, text))
 
-                if self.limit(origin, cmd):
+                if not self.access(origin, cmd):
+                    self.log.info("ACCESS DENIED - %s" % cmd._path_)
                     continue
 
                 bot = self.wrapped(origin, text, match)
@@ -196,7 +195,7 @@ class Oracus(irc.Bot):
                     else:
                         dispatch(*targs)
                 except Exception, e:
-                    self.error(origin, e)
+                    self.error(origin)
 
                 break
 
@@ -214,12 +213,3 @@ class Oracus(irc.Bot):
             reload(mod)
         # except:
         return mod
-
-    def permission(self, limits, data):
-        if not limits:
-            return True;
-        for limit in limits:
-            if not getattr(data, limit):
-                return False
-        return True
-

@@ -25,6 +25,10 @@ prefix      = '@'
 
 admins      = [owner, 'someoneyoutrust']
 
+access      = {
+    r"admin\..*":    admins
+}
+
 ## list of modules to disable
 exclude = ['admin']
 

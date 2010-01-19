@@ -5,7 +5,6 @@ class Join(command):
 
     rule = r" +(#\S+)(?: *(\S+))?"
     example = '%(prefix)sjoin #example or %(prefix)sjoin #example key'
-    limit = ['admin']
 
     def run(self, bot, data):
         if data.sender.startswith('#'):
@@ -22,7 +21,6 @@ class Part(command):
 
     rule = r" *(#{1,}\S+)?"
     example = '%(prefix)spart #example'
-    limit = ['admin']
 
     def run(self, bot, data):
         if data.admin:
@@ -35,8 +33,6 @@ class Part(command):
 
 class Quit(command):
 
-    limit = ['admin']
-
     def run(self, bot, data):
         if data.owner:
             bot.write(['QUIT'])
@@ -45,7 +41,6 @@ class Quit(command):
 class Say(command):
 
     rule = r" +(#?\S+) (.+)"
-    limit = ['admin']
 
     def run(self, bot, data):
         if data.sender.startswith('#'):
@@ -57,7 +52,6 @@ class Say(command):
 class Me(command):
 
     rule = r" +(#?\S+) (.+)"
-    limit = ['admin']
 
     def run(self, bot, data):
         if data.sender.startswith('#'):
@@ -69,7 +63,6 @@ class Me(command):
 class Test(command):
 
     rule = r"(.*)"
-    limit = ['admin']
 
     def run(self, bot, data):
         text = data.group(1)
@@ -81,7 +74,6 @@ class Reload(command):
     """Reloads modules and config"""
 
     rule = r""
-    limit = ['admin']
 
     def run(self, bot, data):
         if data.admin:
