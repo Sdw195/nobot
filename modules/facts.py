@@ -81,11 +81,18 @@ class Fact(command):
 
     rule = r"(.*)"
 
+    syntax = "fact subcommand or term [args]"
+    doc = " ".join(
+        [ "Interface with a term database. Using different commands it is"
+        , "possible to add, retrieve, search, update and delete a list of"
+        , "arbitrary terms and their associated values. If no "
+        ])
+
     def run(self, bot, data):
         self.bot = bot
         self.data = data
 
-        # self.commands = ["lookup", "search", "learn", "forget", "help"]
+        # self.commands = ["lookup", "search", "learn", "update", "forget", "help"]
         self.commands = ["lookup", "learn", "help"]
 
         self.factdb = FactsDB(bot)
@@ -108,10 +115,10 @@ class Fact(command):
                 ## pass the data on to lookup
                 self.lookup(text)
         else:
-            self.help("")
+            bot.say("Error: You must provide a subcommand or term to lookup")
+
 
     def learn(self, text):
-        """Learn a new keyword. Key and value are separated by a full stop"""
 
         regex = re.compile(r" *(.*?)\.(?:\[(\d+)\])?(?: +(.*))")
         match = regex.match(text)
@@ -128,22 +135,28 @@ class Fact(command):
                 self.factdb.learn(key, fact, author, index)
                 self.bot.reply("Learned fact")
             else:
-                raise SyntaxError("Failed to parse. See help for example")
+                raise SyntaxError("Cannot parse. See `fact help learn' for syntax")
 
         except SyntaxError, e:
             self.bot.say("Syntax Error: %s" % e)
         except RuntimeError, e:
             self.bot.say(str(e))
 
-    learn.example = 'learn 2001: A Space Oddysey. A space movie by Stanley Kubrick.'
+    learn.syntax = "fact learn [key (spaces allowed)] value"
+    learn.example = "fact learn [2001: A Space Oddysey] A movie by Stanley Kubrick"
+    learn.doc = " ".join(
+        [ "Learn a new value for a term. If term already exists, a new"
+        , "value will be added to its list. If now, a new term will be created"
+        ])
+
 
     def forget(self, text):
         """Forget a keyword. Only argument is the key to forget"""
         pass
     forget.example = "forget 2001"
 
+
     def lookup(self, text):
-        """Lookup a specific keyword. Only argument is the key to lookup"""
         regex = re.compile(r" *([^\[\]\..]*) *(?:\[(\d+)\])?")
         match = regex.match(text)
         try:
@@ -167,12 +180,21 @@ class Fact(command):
         except RuntimeError, e:
             self.bot.say(str(e))
 
-    lookup.example = "lookup A Space Oddysey"
+    lookup.syntax = "fact lookup term [[index]]"
+    lookup.example = "fact lookup A Space Oddysey [2]"
+    lookup.doc =  " ".join(
+        [ "Lookup a specific term. A partial match will be performed."
+        , "If there are multiple matches, a list of matches will be returned."
+        , "An optional index, eg.: [2] can be supplied if there are many 'pages'"
+        , "for the given term"
+        ])
+
 
     def search(self, text):
         """Search for matching fact in all stored facts"""
         pass
     search.example = "search Kubric"
+
 
     def help(self, text):
         """List all available commands or help for a command"""
@@ -183,16 +205,14 @@ class Fact(command):
         ## if we have a match, display docstring for that command
         if match:
             key = match.group(1)
-            self.bot.private("%s: %s" % (key, getattr(self, key).__doc__))
-            self.bot.private("Example: %s" % getattr(self, key).example)
+            if hasattr(getattr(self, key), 'syntax'):
+                self.bot.private("Syntax: %s" % getattr(self, key).syntax)
+            if hasattr(getattr(self, key), 'example'):
+                self.bot.private("Example: %s" % getattr(self, key).example)
+            if hasattr(getattr(self, key), 'doc'):
+                self.bot.private("%s: %s" % (key, getattr(self, key).doc))
         else:
-            self.bot.private("Available commands: %s" % ", ".join(self.commands))
-    help.example = "help lookup or just help"
+            self.bot.private("Subcommands: %s" % ", ".join(self.commands))
 
-
-        #key = data.group(1)
-        #value = data.group(2)
-        #now = datetime.datetime.now()
-        #who = data.nick
-
-        #bot.log.debug("%s %s %s %s" % (key, value, now, who))
+    help.syntax = "fact help [subcommand]"
+    help.doc = "Provide help on a subcommand or show list of available subcommands"

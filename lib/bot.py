@@ -22,7 +22,9 @@ class __metacommand__(type):
 
 class command():
 
+    syntax = None
     example = None
+    doc = None
     event = "PRIVMSG"
     thread = True
     rule = r"( +(.*))?"

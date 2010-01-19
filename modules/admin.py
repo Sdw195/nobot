@@ -1,11 +1,13 @@
 from lib.bot import command
 
 class Join(command):
-    """Join the specified channel. This is an admin-only command."""
 
     rule = r" +(#\S+)(?: *(\S+))?"
-    example = '%(prefix)sjoin #example or %(prefix)sjoin #example key'
 
+    syntax = 'join #channel [key]'
+    doc = "Join the specified channel. Optionally a key can be provided."
+
+    ## TODO: can we provide a join message?
     def run(self, bot, data):
         if data.sender.startswith('#'):
             return
@@ -20,19 +22,27 @@ class Join(command):
 class Part(command):
 
     rule = r" *(#{1,}\S+)?"
-    example = '%(prefix)spart #example'
 
+    syntax = 'part [#channel]'
+    doc = " ".join(
+        [ "Part the specified channel, or if issued on a channel,"
+        , "and no channel specified, part that channel"
+        ])
+
+    ## TODO: can we provide a part message?
     def run(self, bot, data):
         if data.admin:
             channel = data.group(1)
             if not channel and data.sender.startswith('#'):
                 channel = data.sender
-            channel = channel.strip()
 
             bot.write(['PART'], channel)
 
 class Quit(command):
 
+    doc = "Quit the network completely, and shut down"
+
+    ## TODO: can we provide a quit message?
     def run(self, bot, data):
         if data.owner:
             bot.write(['QUIT'])
@@ -41,6 +51,9 @@ class Quit(command):
 class Say(command):
 
     rule = r" +(#?\S+) (.+)"
+
+    syntax = "say target text"
+    doc = "Message target, which can be either a channel or a user"
 
     def run(self, bot, data):
         if data.sender.startswith('#'):
@@ -52,6 +65,9 @@ class Say(command):
 class Me(command):
 
     rule = r" +(#?\S+) (.+)"
+
+    syntax = "me target text"
+    doc = "Perform text as an action, either in target channel or a private message to target"
 
     def run(self, bot, data):
         if data.sender.startswith('#'):
@@ -71,9 +87,10 @@ class Test(command):
         bot.say(text.strip())
 
 class Reload(command):
-    """Reloads modules and config"""
 
     rule = r""
+
+    doc = "Reload config and modules"
 
     def run(self, bot, data):
         if data.admin:
