@@ -41,3 +41,12 @@ class Help(command):
                 if cmd.action and bot.access(data.origin, cmd):
                     names.append(cmd._name_)
             bot.private("Commands: %s" % ", ".join(names))
+
+class Version(command):
+
+    rule = ".*"
+
+    doc = "Show version information"
+
+    def run(self, bot, data):
+        bot.say("%s, version %s (%s)" % (bot.obj.executable, bot.obj.version, bot.obj.versionstring))

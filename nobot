@@ -39,7 +39,8 @@ enable = []
 
 class Main():
 
-    version = '0.0.1'
+    version = '0.0.9'
+    versionstring = "I can't find my pants"
     verbosity = 50
     executable = os.path.basename(sys.argv[0])
     basedir = os.path.dirname(os.path.abspath(sys.argv[0]))

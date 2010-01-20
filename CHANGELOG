@@ -1,0 +1,9 @@
+-   Added a version command
+-   Added TicketId command to the trac plugin
+-   Added triggers
+-   Dont require a trigger in a query
+-   General purpose permission system
+-   Better help system, now with optional example, syntax and doc
+-   Module and config source reloading
+-   Added initial Fact plugin
+-   Added initial Admin and Info plugins

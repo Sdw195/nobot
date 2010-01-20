@@ -31,16 +31,15 @@ class Part(command):
 
     ## TODO: can we provide a part message?
     def run(self, bot, data):
-        if data.admin:
-            channel = data.group(1)
-            if not channel and data.sender.startswith('#'):
-                channel = data.sender
+        channel = data.group(1)
+        if not channel and data.sender.startswith('#'):
+            channel = data.sender
 
-            bot.write(['PART'], channel)
+        bot.write(['PART'], channel)
 
 class Quit(command):
 
-    doc = "Quit the network completely, and shut down"
+    doc = "Quit the network completely, and shut down. Can only be run by owner"
 
     ## TODO: can we provide a quit message?
     def run(self, bot, data):

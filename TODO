@@ -1,0 +1,24 @@
+COMMANDS
+-   Add a version command
+-   Alert channel when george makes updates to Trac or Wiki
+-   Fact. Add a separate command to update posts. ie. don't use the lookup syntax hack
+-   If @fact lookup finds multiple results, return the first, but inform that there are ambiguities
+    We need an 'identify' command for authenticating users
+-   Help. Have a @help %PKdon that sends a query to person with that nick, and a
+    @help ##transcendence that writes to that channel.
+-   Trac. Ping the tracker every one in a while and check if there are any updates.
+    If there are updates, notify the channel
+    http://wiki.neurohack.com/transcendence/trac/report/11?format=rss
+    http://wiki.neurohack.com/transcendence/trac/report/11?format=csv
+
+INTERNAL
+-   Generalize the handling of subcommands
+-   Split commands and events into different metaclasses
+    commands are actions performed in response to a user command, while events are
+    non-callable and just react to certain events, eg.: Startup.
+-   Threading needs a workover... sometimes it seems two individual threads respong to the same command
+    For now it is disabled in the dispatch
+-   Reload lib code also
+-   Flooding... handle flooding, and implement a @more command for next message
+-   Why does nohup ./nobot -c config/default.py -vvvv > data/default.log 2>&1 &
+    spawn two processes
