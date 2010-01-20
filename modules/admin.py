@@ -11,13 +11,12 @@ class Join(command):
     def run(self, bot, data):
         if data.sender.startswith('#'):
             return
-        if data.admin:
-            channel, key = data.group(1), data.group(2)
+        channel, key = data.group(1), data.group(2)
 
-            if not key:
-                bot.write(['JOIN'], channel.strip())
-            else:
-                bot.write(['JOIN', channel.strip(), key.strip()])
+        if not key:
+            bot.write(['JOIN'], channel.strip())
+        else:
+            bot.write(['JOIN', channel.strip(), key.strip()])
 
 class Part(command):
 
@@ -58,7 +57,7 @@ class Say(command):
         if data.sender.startswith('#'):
             return
         a, b = data.group(1), data.group(2)
-        if a and b and data.admin:
+        if a and b:
             bot.msg(a, b)
 
 class Me(command):
@@ -71,9 +70,8 @@ class Me(command):
     def run(self, bot, data):
         if data.sender.startswith('#'):
             return
-        if data.admin:
-            msg = '\x01ACTION %s\x01' % data.group(2)
-            bot.msg(data.group(1), msg)
+        msg = '\x01ACTION %s\x01' % data.group(2)
+        bot.msg(data.group(1), msg)
 
 class Test(command):
 
@@ -92,9 +90,8 @@ class Reload(command):
     doc = "Reload config and modules"
 
     def run(self, bot, data):
-        if data.admin:
-            config = bot.load_module(bot.config.configname, bot.config.configfile)
-            bot.config = config
-            bot.setup(_reload=True)
-            bot.private("Reloaded")
+        config = bot.load_module(bot.config.configname, bot.config.configfile)
+        bot.config = config
+        bot.setup(_reload=True)
+        bot.say("Reloaded")
 
