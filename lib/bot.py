@@ -24,9 +24,10 @@ class command():
     example = None
     doc = None
     event = "PRIVMSG"
-    thread = True
     rule = r"( +(.*))?"
     regex = None
+    triggers = []
+    thread = True
     action = True
 
     # main method
@@ -52,6 +53,7 @@ class Nobot(irc.Bot):
         self.config = obj.config
         self.log = obj.log
         self.substitutions = {"nick": self.nick, "prefix": self.config.prefix}
+        self.triggers = [r"%(nick)s(?:[,:]?\s+)", r"%(prefix)s\w+"]
 
         self.setup()
 
@@ -98,15 +100,33 @@ class Nobot(irc.Bot):
 
     def bind_commands(self):
 
+        ## build the triggers
+        self._triggers_ = []
+        for trigger in self.triggers:
+            self._triggers_.append(self.interpolate(trigger))
+
         for cmd in command.modules:
 
             ## build the regex we will match
             if cmd.regex:
                 cmd._regex_ = cmd.regex
             else:
-                cmd._regex_ = r"^ *(?:%(nick)s.?|%(prefix)s) *(?:%(cmd)s)" + cmd.rule + "$"
+                cmd._regex_ = r"^.*(?:%(cmd)s)" + cmd.rule + "$"
 
             cmd._regex_ = re.compile(self.interpolate(cmd._regex_, cmd))
+            self.log.debug("REGEX: %s" % cmd._regex_.pattern)
+
+            ## if this cmd has any triggers and they differ from those
+            ## we already have, add them to the triggers
+            if cmd.triggers:
+                for trigger in cmd.triggers:
+                    trigger = self.interpolate(trigger, cmd)
+                    if not trigger in self._triggers_:
+                        self._triggers_.append(trigger)
+
+        ## at this point we should build a propper regex to match as a trigger
+        self._trigger_ = re.compile(r"^.*((?:%s).*)$" % "|".join(self._triggers_))
+        self.log.info("TRIGGER: %s" % self._trigger_.pattern)
 
 
     def wrapped(self, origin, text, match):
@@ -161,16 +181,27 @@ class Nobot(irc.Bot):
 
         self.log.debug("DISPATCH %s %s %s" % (origin.sender, event, text))
 
+        ## if we didnt match a trigger and are in a channel don't continue
+        trigger = self._trigger_.match(text)
+        if not trigger and type(origin.sender) is str and origin.sender.startswith('#'):
+            return False
+        elif trigger:
+            ## get the text we triggered on
+            trigger = trigger.group(0)
+        else:
+            trigger = text
+
         for cmd in command.modules:
+            ## if we don't match the event, try next command
             if event != cmd._event_:
                 continue
 
             self.log.debug("TESTING COMMAND %s %s %s" % (cmd._name_, cmd.event, cmd._regex_.pattern))
 
-            match = cmd._regex_.match(text)
+            match = cmd._regex_.match(trigger)
             if match:
 
-                self.log.info("MATCHED COMMAND %s: %s %s %s" % (cmd._name_, origin.sender, event, text))
+                self.log.info("MATCHED COMMAND %s: %s %s %s" % (cmd._name_, origin.sender, event, trigger))
 
                 if not self.access(origin, cmd):
                     self.log.info("ACCESS DENIED - %s" % cmd._path_)
