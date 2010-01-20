@@ -25,14 +25,14 @@ class Watcher(object):
         except OSError:
             pass
 
-def run_oracus(obj):
+def run_nobot(obj):
     if hasattr(obj.config, 'delay'):
         delay = obj.config.delay
     else:
         delay = 20
 
     def connect(obj):
-        p = bot.Oracus(obj)
+        p = bot.Nobot(obj)
         p.run(obj.config.server, obj.config.port)
 
     try:
@@ -52,7 +52,7 @@ def run_oracus(obj):
         time.sleep(delay)
 
 def run(obj):
-    t = threading.Thread(target=run_oracus, args=(obj,))
+    t = threading.Thread(target=run_nobot, args=[obj])
     if hasattr(t, 'run'):
         t.run()
     else:

@@ -55,7 +55,7 @@ def decode(bytes):
             text = bytes.decode('cp1252')
     return text
 
-class Oracus(irc.Bot):
+class Nobot(irc.Bot):
 
     def __init__(self, obj):
         irc.Bot.__init__(self, obj)
