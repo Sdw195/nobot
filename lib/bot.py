@@ -5,8 +5,6 @@
 import sys, os, re, threading, imp
 import lib.irc as irc
 
-home = os.getcwd()
-
 class __metacommand__(type):
 
     def __init__(cls, name, bases, attrs):
@@ -39,21 +37,12 @@ class command():
     __metaclass__ = __metacommand__
 
     _regex_ = r""
+    _trigger_ = ""
 
     def __call__(self, cmd, bot, data):
         """Call the run method of specified command"""
         instance = cmd()
         instance.run(bot, data)
-
-def decode(bytes):
-    try:
-        text = bytes.decode('utf-8')
-    except UnicodeDecodeError:
-        try:
-            text = bytes.decode('iso-8859-1')
-        except UnicodeDecodeError:
-            text = bytes.decode('cp1252')
-    return text
 
 class Nobot(irc.Bot):
 
@@ -62,8 +51,6 @@ class Nobot(irc.Bot):
         self.obj = obj
         self.config = obj.config
         self.log = obj.log
-        # self.doc = {}
-        # self.stats = {}
         self.substitutions = {"nick": self.nick, "prefix": self.config.prefix}
 
         self.setup()
@@ -95,7 +82,8 @@ class Nobot(irc.Bot):
 
         # if modules:
         if modules:
-            self.log.info("Registered modules: %s" % ", ".join(modules))
+            self.log.info("Modules: %s" % ", ".join(modules))
+            self.log.info("Commands: %s" % ", ".join([cmd._name_ for cmd in command.modules]))
             self.modules = modules
         else:
             self.log.warning("Couldn't find any commands")
@@ -138,6 +126,7 @@ class Nobot(irc.Bot):
 
         return BotWrapper(self)
 
+
     def data(self, origin, text, bytes, match, event, args):
         class CommandInput(unicode):
             def __new__(cls, text, origin, bytes, match, event, args):
@@ -157,6 +146,7 @@ class Nobot(irc.Bot):
 
         return CommandInput(text, origin, bytes, match, event, args)
 
+
     def access(self, origin, cmd):
         if origin.nick and hasattr(self.config, 'access'):
             for path, nicks in self.config.access.iteritems():
@@ -164,9 +154,10 @@ class Nobot(irc.Bot):
                     return False
         return True
 
+
     def dispatch(self, origin, args):
         bytes, event, args = args[0], args[1], args[2:]
-        text = decode(bytes)
+        text = self.decode(bytes)
 
         self.log.debug("DISPATCH %s %s %s" % (origin.sender, event, text))
 
@@ -191,6 +182,7 @@ class Nobot(irc.Bot):
                 try:
                     targs = (cmd, bot, data)
                     dispatch = command()
+                    ## TODO: have a deeper look at threading. For now it is disabled here
                     if False:#cmd.thread:
                         t = threading.Thread(target=dispatch, args=targs)
                         t.start()
@@ -199,19 +191,29 @@ class Nobot(irc.Bot):
                 except Exception, e:
                     self.error(origin)
 
+                ## stop looking for matches
                 break
 
-    def load_module(self, module, filename=None, _reload=False):
-        ## this exists for easy access from modules
+
+    def load_module(self, module, filename=None, folder="modules", _reload=False):
         if filename:
             return imp.load_source(module, filename)
-
         try:
-            mod = getattr(__import__('modules.%s' % module), module)
+            mod = getattr(__import__('%s.%s' % (folder, module)), module)
         except ImportError, e:
             self.log.error("Error loading %s: %s" % (module, e))
         if _reload:
             self.log.debug("Reloading %s" % mod)
             reload(mod)
-        # except:
         return mod
+
+
+    def decode(self, bytes):
+        try:
+            text = bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            try:
+                text = bytes.decode('iso-8859-1')
+            except UnicodeDecodeError:
+                text = bytes.decode('cp1252')
+        return text
