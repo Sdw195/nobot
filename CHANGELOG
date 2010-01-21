@@ -1,3 +1,4 @@
+-   Added lock and unlock
 -   Added a version command
 -   Added TicketId command to the trac plugin
 -   Added triggers

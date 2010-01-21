@@ -201,6 +201,11 @@ class Nobot(irc.Bot):
             match = cmd._regex_.match(trigger)
             if match:
 
+                lockfile = "%s.lock" % os.path.join(self.config.datadir, self.config.configname)
+                if os.path.exists(lockfile) and not cmd._name_ == "unlock":
+                    self.msg(origin.sender, "Dispatch Locked. No commands will be processed.")
+                    continue
+
                 self.log.info("MATCHED COMMAND %s: %s %s %s" % (cmd._name_, origin.sender, event, trigger))
 
                 if not self.access(origin, cmd):

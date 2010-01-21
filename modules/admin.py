@@ -95,3 +95,29 @@ class Reload(command):
         bot.setup(_reload=True)
         bot.say("Reloaded")
 
+class Lock(command):
+
+    rule = r""
+    doc = "Lock nobot dispatch. Only command that can be run is unlock"
+
+    def run(self, bot, data):
+        import os
+        if data.sender.startswith('#'):
+            return
+        lockfile = "%s.lock" % os.path.join(bot.config.datadir, bot.config.configname)
+        open(lockfile, "w").close()
+        bot.say("Dispatch locked")
+
+class Unlock(command):
+
+    rule = r""
+    doc = "Unlock nobot dispatch"
+
+    def run(self, bot, data):
+        import os
+        if data.sender.startswith('#'):
+            return
+        lockfile = "%s.lock" % os.path.join(bot.config.datadir, bot.config.configname)
+        if os.path.exists(lockfile):
+            os.remove(lockfile)
+        bot.say("Unlocked")
