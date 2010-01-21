@@ -1,15 +1,16 @@
 COMMANDS
--   Add a version command
 -   Alert channel when george makes updates to Trac or Wiki
--   Fact. Add a separate command to update posts. ie. don't use the lookup syntax hack
 -   If @fact lookup finds multiple results, return the first, but inform that there are ambiguities
-    We need an 'identify' command for authenticating users
+-   We need an 'identify' command for authenticating users
 -   Help. Have a @help %PKdon that sends a query to person with that nick, and a
     @help ##transcendence that writes to that channel.
 -   Trac. Ping the tracker every one in a while and check if there are any updates.
     If there are updates, notify the channel
     http://wiki.neurohack.com/transcendence/trac/report/11?format=rss
     http://wiki.neurohack.com/transcendence/trac/report/11?format=csv
+    Set referrer that can be traced back to source
+-   Add a `whoami' command that prints owner and maintainer details
+-   Fact. Add a command to show details on a fact. Date added, nick.
 
 INTERNAL
 -   Generalize the handling of subcommands

@@ -8,78 +8,136 @@ class FactsDB(Database):
     def create_structure(self):
         c = self.con.cursor()
         c.execute("""
-            CREATE TABLE fact_index (
+            CREATE TABLE terms (
                 id INTEGER PRIMARY KEY,
-                key TEXT UNIQUE ON CONFLICT IGNORE
+                term TEXT,
+                count INTEGER
             )""")
         c.execute("""
             CREATE TABLE facts (
                 id INTEGER PRIMARY KEY,
-                key_id INTEGER,
+                tid INTEGER,
+                position INTEGER DEFAULT 1,
                 fact TEXT,
+                deleted INTEGER DEFAULT 0,
                 created_at TIMESTAMP,
-                created_by TEXT
+                created_by TEXT,
+                updated_at TIMESTAMP DEFAULT NULL,
+                updated_by TEXT DEFAULT NULL,
+                deleted_at TIMESTAMP DEFAULT NULL,
+                deleted_by TEXT DEFAULT NULL
             )""")
+
         self.con.commit()
 
-    def lookup(self, key, index=None):
-        pass
-
-    ## TODO: implement handling of `index'
-    def learn(self, key, fact, author, index=None):
+    def learn(self, term, fact, author):
         c = self.con.cursor()
-        ## see if we already have a matching key
-        c.execute("SELECT id FROM fact_index WHERE key = ?", (key,))
-        kid = c.fetchone()
-        if kid:
-            kid = kid[0]
-        ## if we found none, add a new row
-        if not kid:
-            c.execute("INSERT INTO fact_index (key) VALUES (?)", (key,))
-            self.con.commit()
-            kid = c.lastrowid
-        ## now we have id key id
-        ## check if it would be a duplicate row
-        c.execute("SELECT * FROM facts WHERE key_id = ? AND fact = ?", (kid, fact))
-        found = c.fetchone()
-
-        if found:
-            raise RuntimeError("Duplicate fact for key")
+        ## see if we already have a matching term
+        c.execute("SELECT id, count FROM terms WHERE term = ?", [term])
+        res = c.fetchone()
+        if res:
+            tid, pos = res
+            self.check_duplicate(tid, fact)
         else:
-            c.execute("""INSERT INTO
-                facts (key_id, fact, created_at, created_by) VALUES (?, ?, ?, ?)
-                """, (kid, fact, time.time(), author))
+            ## we found none, add a new row
+            c.execute("INSERT INTO terms (term, count) VALUES (?, 0)", [term])
             self.con.commit()
+            tid, pos = c.lastrowid, 0
 
-    def lookup(self, key, index):
-        self.bot.log.debug("Lookup: %s %s" % (key, type(index)))
-        key = "%%%s%%" % key
+        ## now we have a term id, insert a new row
+        c.execute("""INSERT INTO
+            facts (tid, position, fact, created_at, created_by) VALUES (?, ?, ?, ?, ?)
+            """, (tid, pos+1, fact, time.time(), author))
+
+        ## add one to term count
+        c.execute("""UPDATE terms SET count = count + 1 WHERE id = ?""", [tid])
+        self.con.commit()
+
+    def updateterm(self, term, newterm):
         c = self.con.cursor()
-        c.execute("""SELECT * FROM facts, fact_index WHERE fact_index.key LIKE ?
-                  AND facts.key_id = fact_index.id""", [key])
-        res = c.fetchall()
-        self.bot.log.debug(res)
+        tid = self.get_tid(term)
+
+        c.execute("UPDATE terms SET term = ? WHERE id = ?", (newterm, tid))
+        self.con.commit()
+
+    def update(self, term, fact, author, index):
+        c = self.con.cursor()
+        tid = self.get_tid(term)
+        self.check_duplicate(tid, fact)
+
+        ## check if we have a fact with that position
+        c.execute("SELECT id FROM facts WHERE position = ? AND tid = ? AND deleted = 0", (index, tid))
+        if not c.fetchone():
+            raise RuntimeError("No fact to update")
+
+        ## update fact
+        c.execute("UPDATE facts SET fact = ? WHERE tid = ? AND position = ? AND deleted = 0", (fact, tid, index))
+        self.con.commit()
+
+    def lookup(self, term, index=None):
+        term = "%%%s%%" % term
+        index = index or 1
+        c = self.con.cursor()
+        c.execute("""SELECT terms.id, terms.term, terms.count, facts.tid, facts.position, facts.fact
+                  FROM terms, facts WHERE terms.term LIKE ?  AND facts.tid = terms.id 
+                  AND facts.position = ? AND facts.deleted = 0""", (term, index))
+        res = c.fetchone()
 
         if not res:
             raise RuntimeError("No results found")
 
-        if index is None:
-            index = 1
+        print res
+        return "%s[%s/%s]: %s" % (res[1], index, res[2], res[5])
 
-        try:
-            fact = res[int(index) - 1]
-        except IndexError:
-            raise RuntimeError("Index out of range")
+    def forget(self, term, nick, index=None):
+        c = self.con.cursor()
+        tid = self.get_tid(term)
 
-        count = len(res)
-        created = fact[3]
-        fact = "%s[%s/%s]: %s" % (fact[6], index, count, fact[2])
-        return (fact, created)
+        c.execute("SELECT count FROM terms where id = ?", [tid])
+        count = c.fetchone()[0]
+        print count, index
+        if index and int(index) <= int(count):
+            print "Smaller or equal"
+            facts = [index]
+        elif index is None:
+            facts = [r+1 for r in range(count)]
+        else:
+            raise SyntaxError
+
+        for pos in facts:
+            ## mark the row as deleted
+            c.execute("""UPDATE facts SET deleted = 1, deleted_at = ?, deleted_by = ?
+                    WHERE tid = ? AND position = ?""", (time.time(), nick, tid, pos))
+            ## change position of all facts
+            c.execute("UPDATE facts SET position = position - 1 WHERE tid = ? AND position > ?", (tid, pos))
+            ## decrement the term counter
+            c.execute("UPDATE terms SET count = count - 1 WHERE id = ?", [tid])
+            self.con.commit()
+
+    def get_tid(self, term):
+        c = self.con.cursor()
+        ## check if term exists
+        c.execute("SELECT id FROM terms WHERE term = ?", [term])
+        tid = c.fetchone()
+        if tid:
+            tid = tid[0]
+        else:
+            ## we found none, raise error
+            raise RuntimeError("No matching term found")
+        return tid
+
+    def check_duplicate(self, tid, fact):
+        c = self.con.cursor()
+        ## check for duplicates
+        c.execute("SELECT * FROM facts WHERE tid = ? AND fact = ? AND deleted = 0", (tid, fact))
+        if c.fetchone():
+            raise RuntimeError("Duplicate fact for term")
 
 
 class Fact(command):
 
-    rule = r"(.*)"
+    regex = r".*(?:%(cmd)s(.*)|\?\[([^\[\]]+)\])"
+    triggers = [r"\?\[[^\[\]]+\]"]
 
     syntax = "fact subcommand or term [args]"
     doc = " ".join(
@@ -93,11 +151,17 @@ class Fact(command):
         self.data = data
 
         # self.commands = ["lookup", "search", "learn", "update", "forget", "help"]
-        self.commands = ["lookup", "learn", "help"]
+        self.commands = ["lookup", "learn", "help", "update", "updateterm"]
 
         self.factdb = FactsDB(bot)
-        text = data.group(1)
 
+        ## if we have a match in group 1, it is a regular call
+        ## if we have it in group2, then it is a shorthand lookup
+        if data.group(2):
+            term = data.group(2)
+            return self.lookup(term)
+
+        text = data.group(1)
         ## run a regex on the command to see where we 
         ## want to dispatch too
         regex = re.compile(r' +(\S+)(.*)')
@@ -115,79 +179,124 @@ class Fact(command):
                 ## pass the data on to lookup
                 self.lookup(text)
         else:
-            bot.say("Error: You must provide a subcommand or term to lookup")
+            bot.say("Error: You must provide a subcommand or term to lookup. Try `fact help'")
 
 
     def learn(self, text):
-
-        regex = re.compile(r" *(.*?)\.(?:\[(\d+)\])?(?: +(.*))")
+        regex = re.compile(r"\s*\[\s*([^\[\]]+)\s*\]\s+(.*)")
         match = regex.match(text)
         try:
-            if match:
-                author = self.data.nick
-                key = match.group(1)
-                index = match.group(2)
-                fact = match.group(3)
-                if not key or not fact:
-                    raise SyntaxError("Key or Value is missing")
-                key = key.strip()
-                fact = fact.strip()
-                self.factdb.learn(key, fact, author, index)
-                self.bot.reply("Learned fact")
-            else:
-                raise SyntaxError("Cannot parse. See `fact help learn' for syntax")
+            author = self.data.nick
+            key, fact = match.groups("")
+            if not key or not fact:
+                raise SyntaxError
+            self.factdb.learn(key, fact, author)
+            self.bot.say("Learned fact")
 
-        except SyntaxError, e:
-            self.bot.say("Syntax Error: %s" % e)
+        except (SyntaxError, AttributeError):
+            self.bot.say("Syntax Error. See `fact help learn' for more info")
         except RuntimeError, e:
             self.bot.say(str(e))
 
-    learn.syntax = "fact learn [key (spaces allowed)] value"
+    learn.syntax = "fact learn [term (spaces allowed)] fact"
     learn.example = "fact learn [2001: A Space Oddysey] A movie by Stanley Kubrick"
     learn.doc = " ".join(
-        [ "Learn a new value for a term. If term already exists, a new"
-        , "value will be added to its list. If now, a new term will be created"
+        [ "Learn a new fact for a term. If term already exists, a new"
+        , "fact will be added to its list. If not, a new term will be created"
         ])
 
 
     def forget(self, text):
-        """Forget a keyword. Only argument is the key to forget"""
-        pass
-    forget.example = "forget 2001"
-
-
-    def lookup(self, text):
-        regex = re.compile(r" *([^\[\]\..]*) *(?:\[(\d+)\])?")
+        regex = re.compile(r"\s*([^\[\]]+)(?:\[(\d+)\])?")
         match = regex.match(text)
         try:
-            if match:
-                key = match.group(1)
-                index = match.group(2)
+            print match.groups()
+            term, index = match.groups()
+            if not term:
+                raise SyntaxError
 
-                if not key:
-                    raise SyntaxError("Invalid Key. Try Again")
-                key = key.strip()
-                fact = self.factdb.lookup(key, index)[0]
-                self.bot.say(fact)
+            self.factdb.forget(term.strip(), self.data.nick, index)
+            if index:
+                self.bot.say("Forgot fact")
+            else:
+                self.bot.say("Forgot term and all it's facts")
 
-                # date = datetime.datetime.fromtimestamp(fact[3])
-                # date = "%s:%s %s/%s/%s" % (date.hour, date.minute, date.day,
-                                        # date.month, date.year)
-                # return ("%s[%s/%s]: %s", (%s, %s))" % (fact[6], index, count, fact[2], nick, date)
-
-        except SyntaxError, e:
-            self.bot.say("Syntax Error: %s" % e)
+        except (SyntaxError, AttributeError):
+            self.bot.say("Syntax Error. See `fact help forget' for more info")
         except RuntimeError, e:
             self.bot.say(str(e))
 
-    lookup.syntax = "fact lookup term [[index]]"
+    forget.syntax = "fact forget term [index]"
+    forget.example = "fact forget A Space Oddysey [2]. Forget the 2nd. fact of the term"
+    forget.doc =  " ".join(
+        [ "Forget a specific fact, or all facts for a term."
+        , "If no index is given, all facts and the term itself will be forgotten."
+        ])
+
+
+    def lookup(self, term):
+        regex = re.compile(r"\s*([^\[\]]+)(?:\[(\d+)\])?")
+        match = regex.match(term)
+        try:
+            term, index = match.groups()
+
+            if not term:
+                raise SyntaxError
+            fact = self.factdb.lookup(term, index)
+            self.bot.say(fact)
+
+        except (SyntaxError, AttributeError):
+            self.bot.say("Syntax Error. See `fact help lookup' for more info")
+        except RuntimeError, e:
+            self.bot.say(str(e))
+
+    lookup.syntax = "fact lookup term [index]"
     lookup.example = "fact lookup A Space Oddysey [2]"
     lookup.doc =  " ".join(
-        [ "Lookup a specific term. A partial match will be performed."
+        [ "Lookup a specific term. A search for a partial match will be performed."
         , "If there are multiple matches, a list of matches will be returned."
         , "An optional index, eg.: [2] can be supplied if there are many 'pages'"
         , "for the given term"
         ])
+
+
+    def update(self, text):
+        regex = re.compile(r"\s*(.*?)(?:\s*\[(\d+)\])\s*(.*)")
+        match = regex.match(text)
+        try:
+            author = self.data.nick
+            term, index, fact = match.groups()
+            if not (term or index or fact):
+                raise SyntaxError
+            self.factdb.update(term, fact, author, index)
+            self.bot.say("Updated fact")
+        except (SyntaxError, AttributeError):
+            self.bot.say("Syntax Error. See `fact help lookup' for more info")
+        except RuntimeError, e:
+            self.bot.say(str(e))
+
+    update.syntax = "fact update term [index] newfact"
+    update.example = "fact update A Space Oddysey [1] A movie by Stanley Kubrick. It portrays a fictional future"
+    update.doc =  "Update a given fact for a specific term"
+
+
+    def updateterm(self, text):
+        regex = re.compile(r"\s*\[\s*([^\[\]]+)\s*\]\s+([^\[\]]+)")
+        match = regex.match(text)
+        try:
+            term, newterm = match.groups()
+            if not (term or newterm):
+                raise SyntaxError
+            self.factdb.updateterm(term, newterm)
+            self.bot.say("Updated term")
+        except (SyntaxError, AttributeError):
+            self.bot.say("Syntax Error. See `fact help lookup' for more info")
+        except RuntimeError, e:
+            self.bot.say(str(e))
+
+    updateterm.syntax = "fact updateterm [term] newterm"
+    updateterm.example = "fact updateterm [A Space Oddysey] A Space Oddity"
+    updateterm.doc =  "Update the text of a term."
 
 
     def search(self, text):
