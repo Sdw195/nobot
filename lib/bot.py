@@ -53,7 +53,7 @@ class Nobot(irc.Bot):
         self.config = obj.config
         self.log = obj.log
         self.substitutions = {"nick": self.nick, "prefix": self.config.prefix}
-        self.triggers = [r"%(nick)s(?:[,:]?\s+)", r"%(prefix)s\w+"]
+        self.triggers = [r"%(nick)s(?:[,:]?\s+(?=\w+))", r"%(prefix)s(?=\w+)"]
 
         self.setup()
 
@@ -125,7 +125,7 @@ class Nobot(irc.Bot):
                         self._triggers_.append(trigger)
 
         ## at this point we should build a propper regex to match as a trigger
-        self._trigger_ = re.compile(r".*((?:%s).*)" % "|".join(self._triggers_))
+        self._trigger_ = re.compile(r".*(?:%s)(.*)" % "|".join(self._triggers_))
         self.log.info("TRIGGER: %s" % self._trigger_.pattern)
 
 
@@ -187,7 +187,7 @@ class Nobot(irc.Bot):
             return False
         elif trigger:
             ## get the text we triggered on
-            trigger = trigger.group(0)
+            trigger = trigger.group(1)
         else:
             trigger = text
 

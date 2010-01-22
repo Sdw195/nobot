@@ -134,7 +134,7 @@ class FactsDB(Database):
 class Fact(command):
 
     regex = r".*(?:%(cmd)s(.*)|\?\[([^\[\]]+)\](\[\d+\])?)"
-    triggers = [r"\?\[[^\[\]]+\]"]
+    triggers = [r"(?=\?\[[^\[\]]+\])"]
 
     syntax = "fact subcommand or term [args]"
     doc = " ".join(
