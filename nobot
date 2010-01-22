@@ -9,8 +9,9 @@ Licensed under the Eiffel Forum License 2.
 http://inamidst.com/phenny/
 """
 
-import sys, os, imp, getopt, logging, ctypes
+import sys, os, imp, getopt, logging, ctypes, threading, signal, time
 from textwrap import dedent as trim
+import lib.bot
 
 DEFAULT_CONFIG = """
 server      = 'irc.example.net'
@@ -120,21 +121,14 @@ class Main():
             log.fatal("Edit config file first: %s" % self.config.filename)
             sys.exit(1)
 
-        ## XXX: this needs to be inlined (to get rid of __init__.py
-        ## load bot
-        try:
-            from __init__ import run
-        except ImportError, e:
-            log.fatal("Error: Could not find bot to import")
-            sys.exit(1)
-
         ## set proccess name
         ## XXX: this will fail on windows
         libc = ctypes.CDLL("libc.so.6")
         libc.prctl(15, "%s-%s" % (self.executable, self.config.configname), 0, 0, 0)
 
         ## initialise and run bot
-        run(self)
+        t = threading.Thread(target=run_bot, args=[self])
+        t.run()
 
     def create_configfile(self):
         log.info('Creating config file %s...' % self.configfile)
@@ -175,6 +169,54 @@ class Main():
         print "-h, --help                   give this help list"
         print "-V, --version                print program version"
         print "-v, --verbose                increase verbosity. Can recur"
+
+
+def run_bot(obj):
+    if hasattr(obj.config, 'delay'):
+        delay = obj.config.delay
+    else:
+        delay = 20
+
+    def connect(obj):
+        p = lib.bot.Nobot(obj)
+        p.run(obj.config.server, obj.config.port)
+
+    try:
+        Watcher()
+    except Exception, e:
+        obj.log.warning(e)
+
+    while True:
+        try: connect(obj)
+        except KeyboardInterrupt:
+            sys.exit()
+
+        if not isinstance(delay, int):
+            break
+
+        obj.log.warning('Disconnected. Reconnecting in %s seconds...' % delay)
+        time.sleep(delay)
+
+class Watcher(object):
+    # Cf. http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/496735
+    def __init__(self):
+        self.child = os.fork()
+        if self.child != 0:
+            self.watch()
+
+    def watch(self):
+        try:
+            os.wait()
+        except KeyboardInterrupt:
+            self.kill()
+            sys.exit()
+
+    def kill(self):
+        try:
+            os.kill(self.child, signal.SIGKILL)
+        except OSError:
+            pass
+
 
 # Setting up logging
 logging.addLevelName(10, 'debug')
