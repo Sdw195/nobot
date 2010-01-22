@@ -20,11 +20,11 @@ class FactsDB(Database):
                 position INTEGER DEFAULT 1,
                 fact TEXT,
                 deleted INTEGER DEFAULT 0,
-                created_at TIMESTAMP,
+                created_at DATETIME,
                 created_by TEXT,
-                updated_at TIMESTAMP DEFAULT NULL,
+                updated_at DATETIME DEFAULT NULL,
                 updated_by TEXT DEFAULT NULL,
-                deleted_at TIMESTAMP DEFAULT NULL,
+                deleted_at DATETIME DEFAULT NULL,
                 deleted_by TEXT DEFAULT NULL
             )""")
 
@@ -46,8 +46,8 @@ class FactsDB(Database):
 
         ## now we have a term id, insert a new row
         c.execute("""INSERT INTO
-            facts (tid, position, fact, created_at, created_by) VALUES (?, ?, ?, ?, ?)
-            """, (tid, pos+1, fact, time.time(), author))
+            facts (tid, position, fact, created_at, created_by) VALUES (?, ?, ?, datetime('now'), ?)
+            """, (tid, pos+1, fact, author))
 
         ## add one to term count
         c.execute("""UPDATE terms SET count = count + 1 WHERE id = ?""", [tid])
@@ -71,7 +71,8 @@ class FactsDB(Database):
             raise RuntimeError("No fact to update")
 
         ## update fact
-        c.execute("UPDATE facts SET fact = ? WHERE tid = ? AND position = ? AND deleted = 0", (fact, tid, index))
+        c.execute("""UPDATE facts SET fact = ?, updated_by = ?, updated_at = datetime('now') 
+                  WHERE tid = ? AND position = ? AND deleted = 0""", (fact, author, tid, index))
         self.con.commit()
 
     def lookup(self, term, index=None):
@@ -88,6 +89,29 @@ class FactsDB(Database):
 
         return "%s[%s/%s]: %s" % (res[1], index, res[2], res[5])
 
+    def details(self, term, index=None):
+        term = "%%%s%%" % term
+        index = index or 1
+        c = self.con.cursor()
+        c.execute("""SELECT terms.id, terms.term, terms.count, facts.tid, facts.fact,
+                  facts.created_by, strftime("%H:%M %d/%m/%Y", facts.created_at),
+                  facts.updated_by, strftime("%H:%M %d/%m/%Y", facts.updated_at)
+                  FROM terms, facts WHERE terms.term LIKE ? AND facts.tid = terms.id 
+                  AND facts.position = ? AND facts.deleted = 0""", (term, index))
+        res = c.fetchone()
+
+        if not res:
+            raise RuntimeError("No results found")
+
+        print res
+
+        details = "%s - Term: %s, Index: %s, Total: %s, Created By: %s, Created At: %s" % (
+            res[4], res[1], index, res[3], res[5], res[6])
+        if res[6] and res[7]:
+            details = "%s, Updated By: %s, Updated At: %s" % (details, res[7], res[6])
+
+        return details
+
     def forget(self, term, nick, index=None):
         c = self.con.cursor()
         tid = self.get_tid(term)
@@ -103,8 +127,8 @@ class FactsDB(Database):
 
         for pos in facts:
             ## mark the row as deleted
-            c.execute("""UPDATE facts SET deleted = 1, deleted_at = ?, deleted_by = ?
-                    WHERE tid = ? AND position = ?""", (time.time(), nick, tid, pos))
+            c.execute("""UPDATE facts SET deleted = 1, deleted_at = datetime('now'), deleted_by = ?
+                    WHERE tid = ? AND position = ?""", (nick, tid, pos))
             ## change position of all facts
             c.execute("UPDATE facts SET position = position - 1 WHERE tid = ? AND position > ?", (tid, pos))
             ## decrement the term counter
@@ -148,7 +172,7 @@ class Fact(command):
         self.data = data
 
         # self.commands = ["lookup", "search", "learn", "update", "forget", "help"]
-        self.commands = ["lookup", "learn", "help", "update", "updateterm", "forget"]
+        self.commands = ["lookup", "learn", "help", "update", "updateterm", "forget", "details"]
 
         self.factdb = FactsDB(bot)
 
@@ -257,6 +281,28 @@ class Fact(command):
         , "An optional index, eg.: [2] can be supplied if there are many 'pages'"
         , "for the given term. Also see syntax for shorthand"
         ])
+
+
+    def details(self, text):
+        regex = re.compile(r"\s*([^\[\]]+)(?:\[(\d+)\])?")
+        match = regex.match(text)
+        try:
+            term, index = match.groups()
+
+            if not term:
+                raise SyntaxError
+            fact = self.factdb.details(term.strip(), index)
+            self.bot.say(fact)
+
+        except (SyntaxError, AttributeError):
+            self.bot.say("Syntax Error. See `fact help details' for more info")
+        except RuntimeError, e:
+            self.bot.say(str(e))
+
+    details.syntax = "fact details term [index]"
+    details.example = "fact details A Space Oddysey [2]"
+    details.doc =  " ".join(
+        [ "Show details about a fact."])
 
 
     def update(self, text):

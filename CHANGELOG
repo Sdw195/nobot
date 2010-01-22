@@ -1,3 +1,4 @@
+-   Add details command to facts. Shows details about a fact
 -   fact shorthand lookup now takes an index also
 -   Only match first string after trigger.
 -   Refined fact module. Now has update, updateterm, forget and shorthand syntax for lookup
