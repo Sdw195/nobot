@@ -133,7 +133,7 @@ class FactsDB(Database):
 
 class Fact(command):
 
-    regex = r".*(?:%(cmd)s(.*)|\?\[([^\[\]]+)\](\[\d+\])?)"
+    regex = r".*(?:%(cmd)s\s+(.*)|\?\[([^\[\]]+)\](\[\d+\])?)"
     triggers = [r"(?=\?\[[^\[\]]+\])"]
 
     syntax = "fact subcommand or term [args]"
@@ -161,9 +161,10 @@ class Fact(command):
             return self.lookup(term)
 
         text = data.group(1)
+
         ## run a regex on the command to see where we 
         ## want to dispatch too
-        regex = re.compile(r' +(\S+)(.*)')
+        regex = re.compile(r'\s*(\S+)(.*)')
         match = regex.match(text)
 
         if match:
