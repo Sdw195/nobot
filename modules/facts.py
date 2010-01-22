@@ -86,7 +86,6 @@ class FactsDB(Database):
         if not res:
             raise RuntimeError("No results found")
 
-        print res
         return "%s[%s/%s]: %s" % (res[1], index, res[2], res[5])
 
     def forget(self, term, nick, index=None):
@@ -95,9 +94,7 @@ class FactsDB(Database):
 
         c.execute("SELECT count FROM terms where id = ?", [tid])
         count = c.fetchone()[0]
-        print count, index
         if index and int(index) <= int(count):
-            print "Smaller or equal"
             facts = [index]
         elif index is None:
             facts = [r+1 for r in range(count)]
@@ -136,7 +133,7 @@ class FactsDB(Database):
 
 class Fact(command):
 
-    regex = r".*(?:%(cmd)s(.*)|\?\[([^\[\]]+)\])"
+    regex = r".*(?:%(cmd)s(.*)|\?\[([^\[\]]+)\](\[\d+\])?)"
     triggers = [r"\?\[[^\[\]]+\]"]
 
     syntax = "fact subcommand or term [args]"
@@ -151,14 +148,16 @@ class Fact(command):
         self.data = data
 
         # self.commands = ["lookup", "search", "learn", "update", "forget", "help"]
-        self.commands = ["lookup", "learn", "help", "update", "updateterm"]
+        self.commands = ["lookup", "learn", "help", "update", "updateterm", "forget"]
 
         self.factdb = FactsDB(bot)
 
         ## if we have a match in group 1, it is a regular call
         ## if we have it in group2, then it is a shorthand lookup
         if data.group(2):
-            term = data.group(2)
+            term = data.group(2).strip()
+            if data.group(3):
+                term = "%s%s" % (term, data.group(3))
             return self.lookup(term)
 
         text = data.group(1)
@@ -210,7 +209,6 @@ class Fact(command):
         regex = re.compile(r"\s*([^\[\]]+)(?:\[(\d+)\])?")
         match = regex.match(text)
         try:
-            print match.groups()
             term, index = match.groups()
             if not term:
                 raise SyntaxError
@@ -234,15 +232,15 @@ class Fact(command):
         ])
 
 
-    def lookup(self, term):
+    def lookup(self, text):
         regex = re.compile(r"\s*([^\[\]]+)(?:\[(\d+)\])?")
-        match = regex.match(term)
+        match = regex.match(text)
         try:
             term, index = match.groups()
 
             if not term:
                 raise SyntaxError
-            fact = self.factdb.lookup(term, index)
+            fact = self.factdb.lookup(term.strip(), index)
             self.bot.say(fact)
 
         except (SyntaxError, AttributeError):
@@ -250,13 +248,13 @@ class Fact(command):
         except RuntimeError, e:
             self.bot.say(str(e))
 
-    lookup.syntax = "fact lookup term [index]"
-    lookup.example = "fact lookup A Space Oddysey [2]"
+    lookup.syntax = "fact lookup term [index] or ?[term][index]"
+    lookup.example = "fact lookup A Space Oddysey [2] or ?[Space Oddysey][2]"
     lookup.doc =  " ".join(
         [ "Lookup a specific term. A search for a partial match will be performed."
         , "If there are multiple matches, a list of matches will be returned."
         , "An optional index, eg.: [2] can be supplied if there are many 'pages'"
-        , "for the given term"
+        , "for the given term. Also see syntax for shorthand"
         ])
 
 
@@ -271,7 +269,7 @@ class Fact(command):
             self.factdb.update(term, fact, author, index)
             self.bot.say("Updated fact")
         except (SyntaxError, AttributeError):
-            self.bot.say("Syntax Error. See `fact help lookup' for more info")
+            self.bot.say("Syntax Error. See `fact help update' for more info")
         except RuntimeError, e:
             self.bot.say(str(e))
 
@@ -314,6 +312,8 @@ class Fact(command):
         ## if we have a match, display docstring for that command
         if match:
             key = match.group(1)
+            if not key in self.commands:
+                return self.bot.private("`%s' is not a command" % key)
             if hasattr(getattr(self, key), 'syntax'):
                 self.bot.private("Syntax: %s" % getattr(self, key).syntax)
             if hasattr(getattr(self, key), 'example'):

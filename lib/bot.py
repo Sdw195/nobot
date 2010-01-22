@@ -111,7 +111,7 @@ class Nobot(irc.Bot):
             if cmd.regex:
                 cmd._regex_ = cmd.regex
             else:
-                cmd._regex_ = r"^.*(?:%(cmd)s)" + cmd.rule + "$"
+                cmd._regex_ = r"\s*(?:%(cmd)s)" + cmd.rule
 
             cmd._regex_ = re.compile(self.interpolate(cmd._regex_, cmd))
             self.log.debug("REGEX: %s" % cmd._regex_.pattern)
@@ -125,7 +125,7 @@ class Nobot(irc.Bot):
                         self._triggers_.append(trigger)
 
         ## at this point we should build a propper regex to match as a trigger
-        self._trigger_ = re.compile(r"^.*((?:%s).*)$" % "|".join(self._triggers_))
+        self._trigger_ = re.compile(r".*((?:%s).*)" % "|".join(self._triggers_))
         self.log.info("TRIGGER: %s" % self._trigger_.pattern)
 
 

@@ -23,3 +23,5 @@ INTERNAL
 -   Flooding... handle flooding, and implement a @more command for next message
 -   Why does nohup ./nobot -c config/default.py -vvvv > data/default.log 2>&1 &
     spawn two processes
+-   Get rid of __init__.py
+-   unlock command triggers the locked message, even though it works
