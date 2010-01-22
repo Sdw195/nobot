@@ -36,5 +36,6 @@ class TicketId(command):
     def run(self, bot, data):
         tid = data.group(1)
         if tid:
+            tid = tid[2:]
             tracker = "http://wiki.neurohack.com/transcendence/trac/ticket/%s" % tid
             bot.say("Tracker ticket #%s: %s" % (tid, tracker))
