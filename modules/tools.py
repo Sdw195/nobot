@@ -6,4 +6,4 @@ class Ping(command):
 
     def run(self, bot, data):
 
-        bot.reply("ping")
+        bot.reply("pong")
