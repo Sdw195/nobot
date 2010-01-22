@@ -3,161 +3,9 @@ from lib.tools import Database
 
 import os, re, datetime, time, sqlite3
 
-class FactsDB(Database):
-
-    def create_structure(self):
-        c = self.con.cursor()
-        c.execute("""
-            CREATE TABLE terms (
-                id INTEGER PRIMARY KEY,
-                term TEXT,
-                count INTEGER
-            )""")
-        c.execute("""
-            CREATE TABLE facts (
-                id INTEGER PRIMARY KEY,
-                tid INTEGER,
-                position INTEGER DEFAULT 1,
-                fact TEXT,
-                deleted INTEGER DEFAULT 0,
-                created_at DATETIME,
-                created_by TEXT,
-                updated_at DATETIME DEFAULT NULL,
-                updated_by TEXT DEFAULT NULL,
-                deleted_at DATETIME DEFAULT NULL,
-                deleted_by TEXT DEFAULT NULL
-            )""")
-
-        self.con.commit()
-
-    def learn(self, term, fact, author):
-        c = self.con.cursor()
-        ## see if we already have a matching term
-        c.execute("SELECT id, count FROM terms WHERE term = ?", [term])
-        res = c.fetchone()
-        if res:
-            tid, pos = res
-            self.check_duplicate(tid, fact)
-        else:
-            ## we found none, add a new row
-            c.execute("INSERT INTO terms (term, count) VALUES (?, 0)", [term])
-            self.con.commit()
-            tid, pos = c.lastrowid, 0
-
-        ## now we have a term id, insert a new row
-        c.execute("""INSERT INTO
-            facts (tid, position, fact, created_at, created_by) VALUES (?, ?, ?, datetime('now'), ?)
-            """, (tid, pos+1, fact, author))
-
-        ## add one to term count
-        c.execute("""UPDATE terms SET count = count + 1 WHERE id = ?""", [tid])
-        self.con.commit()
-
-    def updateterm(self, term, newterm):
-        c = self.con.cursor()
-        tid = self.get_tid(term)
-
-        c.execute("UPDATE terms SET term = ? WHERE id = ?", (newterm, tid))
-        self.con.commit()
-
-    def update(self, term, fact, author, index):
-        c = self.con.cursor()
-        tid = self.get_tid(term)
-        self.check_duplicate(tid, fact)
-
-        ## check if we have a fact with that position
-        c.execute("SELECT id FROM facts WHERE position = ? AND tid = ? AND deleted = 0", (index, tid))
-        if not c.fetchone():
-            raise RuntimeError("No fact to update")
-
-        ## update fact
-        c.execute("""UPDATE facts SET fact = ?, updated_by = ?, updated_at = datetime('now') 
-                  WHERE tid = ? AND position = ? AND deleted = 0""", (fact, author, tid, index))
-        self.con.commit()
-
-    def lookup(self, term, index=None):
-        term = "%%%s%%" % term
-        index = index or 1
-        c = self.con.cursor()
-        c.execute("""SELECT terms.id, terms.term, terms.count, facts.tid, facts.position, facts.fact
-                  FROM terms, facts WHERE terms.term LIKE ?  AND facts.tid = terms.id 
-                  AND facts.position = ? AND facts.deleted = 0""", (term, index))
-        res = c.fetchone()
-
-        if not res:
-            raise RuntimeError("No results found")
-
-        return "%s[%s/%s]: %s" % (res[1], index, res[2], res[5])
-
-    def details(self, term, index=None):
-        term = "%%%s%%" % term
-        index = index or 1
-        c = self.con.cursor()
-        c.execute("""SELECT terms.id, terms.term, terms.count, facts.tid, facts.fact,
-                  facts.created_by, strftime("%H:%M %d/%m/%Y", facts.created_at),
-                  facts.updated_by, strftime("%H:%M %d/%m/%Y", facts.updated_at)
-                  FROM terms, facts WHERE terms.term LIKE ? AND facts.tid = terms.id 
-                  AND facts.position = ? AND facts.deleted = 0""", (term, index))
-        res = c.fetchone()
-
-        if not res:
-            raise RuntimeError("No results found")
-
-        print res
-
-        details = "%s - Term: %s, Index: %s, Total: %s, Created By: %s, Created At: %s" % (
-            res[4], res[1], index, res[2], res[5], res[6])
-        if res[6] and res[7]:
-            details = "%s, Updated By: %s, Updated At: %s" % (details, res[7], res[6])
-
-        return details
-
-    def forget(self, term, nick, index=None):
-        c = self.con.cursor()
-        tid = self.get_tid(term)
-
-        c.execute("SELECT count FROM terms where id = ?", [tid])
-        count = c.fetchone()[0]
-        if index and int(index) <= int(count):
-            facts = [index]
-        elif index is None:
-            facts = [r+1 for r in range(count)]
-        else:
-            raise SyntaxError
-
-        for pos in facts:
-            ## mark the row as deleted
-            c.execute("""UPDATE facts SET deleted = 1, deleted_at = datetime('now'), deleted_by = ?
-                    WHERE tid = ? AND position = ?""", (nick, tid, pos))
-            ## change position of all facts
-            c.execute("UPDATE facts SET position = position - 1 WHERE tid = ? AND position > ?", (tid, pos))
-            ## decrement the term counter
-            c.execute("UPDATE terms SET count = count - 1 WHERE id = ?", [tid])
-            self.con.commit()
-
-    def get_tid(self, term):
-        c = self.con.cursor()
-        ## check if term exists
-        c.execute("SELECT id FROM terms WHERE term = ?", [term])
-        tid = c.fetchone()
-        if tid:
-            tid = tid[0]
-        else:
-            ## we found none, raise error
-            raise RuntimeError("No matching term found")
-        return tid
-
-    def check_duplicate(self, tid, fact):
-        c = self.con.cursor()
-        ## check for duplicates
-        c.execute("SELECT * FROM facts WHERE tid = ? AND fact = ? AND deleted = 0", (tid, fact))
-        if c.fetchone():
-            raise RuntimeError("Duplicate fact for term")
-
-
 class Fact(command):
 
-    regex = r".*(?:%(cmd)s\s+(.*)|\?\[([^\[\]]+)\](\[\d+\])?)"
+    regex = r".*(?:%(cmd)s\s+(.*)|\?\[([^\[\]]+)\]\s*(\[\d+\])?)"
     triggers = [r"(?=\?\[[^\[\]]+\])"]
 
     syntax = "fact subcommand or term [args]"
@@ -372,3 +220,154 @@ class Fact(command):
 
     help.syntax = "fact help [subcommand]"
     help.doc = "Provide help on a subcommand or show list of available subcommands"
+
+class FactsDB(Database):
+
+    def create_structure(self):
+        c = self.con.cursor()
+        c.execute("""
+            CREATE TABLE terms (
+                id INTEGER PRIMARY KEY,
+                term TEXT,
+                count INTEGER
+            )""")
+        c.execute("""
+            CREATE TABLE facts (
+                id INTEGER PRIMARY KEY,
+                tid INTEGER,
+                position INTEGER DEFAULT 1,
+                fact TEXT,
+                deleted INTEGER DEFAULT 0,
+                created_at DATETIME,
+                created_by TEXT,
+                updated_at DATETIME DEFAULT NULL,
+                updated_by TEXT DEFAULT NULL,
+                deleted_at DATETIME DEFAULT NULL,
+                deleted_by TEXT DEFAULT NULL
+            )""")
+
+        self.con.commit()
+
+    def learn(self, term, fact, author):
+        c = self.con.cursor()
+        ## see if we already have a matching term
+        c.execute("SELECT id, count FROM terms WHERE term = ?", [term])
+        res = c.fetchone()
+        if res:
+            tid, pos = res
+            self.check_duplicate(tid, fact)
+        else:
+            ## we found none, add a new row
+            c.execute("INSERT INTO terms (term, count) VALUES (?, 0)", [term])
+            self.con.commit()
+            tid, pos = c.lastrowid, 0
+
+        ## now we have a term id, insert a new row
+        c.execute("""INSERT INTO
+            facts (tid, position, fact, created_at, created_by) VALUES (?, ?, ?, datetime('now'), ?)
+            """, (tid, pos+1, fact, author))
+
+        ## add one to term count
+        c.execute("""UPDATE terms SET count = count + 1 WHERE id = ?""", [tid])
+        self.con.commit()
+
+    def updateterm(self, term, newterm):
+        c = self.con.cursor()
+        tid = self.get_tid(term)
+
+        c.execute("UPDATE terms SET term = ? WHERE id = ?", (newterm, tid))
+        self.con.commit()
+
+    def update(self, term, fact, author, index):
+        c = self.con.cursor()
+        tid = self.get_tid(term)
+        self.check_duplicate(tid, fact)
+
+        ## check if we have a fact with that position
+        c.execute("SELECT id FROM facts WHERE position = ? AND tid = ? AND deleted = 0", (index, tid))
+        if not c.fetchone():
+            raise RuntimeError("No fact to update")
+
+        ## update fact
+        c.execute("""UPDATE facts SET fact = ?, updated_by = ?, updated_at = datetime('now') 
+                  WHERE tid = ? AND position = ? AND deleted = 0""", (fact, author, tid, index))
+        self.con.commit()
+
+    def lookup(self, term, index=None):
+        term = "%%%s%%" % term
+        index = index or 1
+        c = self.con.cursor()
+        c.execute("""SELECT terms.id, terms.term, terms.count, facts.tid, facts.position, facts.fact
+                  FROM terms, facts WHERE terms.term LIKE ?  AND facts.tid = terms.id 
+                  AND facts.position = ? AND facts.deleted = 0""", (term, index))
+        res = c.fetchone()
+
+        if not res:
+            raise RuntimeError("No results found")
+
+        return "%s[%s/%s]: %s" % (res[1], index, res[2], res[5])
+
+    def details(self, term, index=None):
+        term = "%%%s%%" % term
+        index = index or 1
+        c = self.con.cursor()
+        c.execute("""SELECT terms.id, terms.term, terms.count, facts.tid, facts.fact,
+                  facts.created_by, strftime("%H:%M %d/%m/%Y", facts.created_at),
+                  facts.updated_by, strftime("%H:%M %d/%m/%Y", facts.updated_at)
+                  FROM terms, facts WHERE terms.term LIKE ? AND facts.tid = terms.id 
+                  AND facts.position = ? AND facts.deleted = 0""", (term, index))
+        res = c.fetchone()
+
+        if not res:
+            raise RuntimeError("No results found")
+
+        print res
+
+        details = "%s - Term: %s, Index: %s, Total: %s, Created By: %s, Created At: %s" % (
+            res[4], res[1], index, res[2], res[5], res[6])
+        if res[6] and res[7]:
+            details = "%s, Updated By: %s, Updated At: %s" % (details, res[7], res[6])
+
+        return details
+
+    def forget(self, term, nick, index=None):
+        c = self.con.cursor()
+        tid = self.get_tid(term)
+
+        c.execute("SELECT count FROM terms where id = ?", [tid])
+        count = c.fetchone()[0]
+        if index and int(index) <= int(count):
+            facts = [index]
+        elif index is None:
+            facts = [r+1 for r in range(count)]
+        else:
+            raise SyntaxError
+
+        for pos in facts:
+            ## mark the row as deleted
+            c.execute("""UPDATE facts SET deleted = 1, deleted_at = datetime('now'), deleted_by = ?
+                    WHERE tid = ? AND position = ?""", (nick, tid, pos))
+            ## change position of all facts
+            c.execute("UPDATE facts SET position = position - 1 WHERE tid = ? AND position > ?", (tid, pos))
+            ## decrement the term counter
+            c.execute("UPDATE terms SET count = count - 1 WHERE id = ?", [tid])
+            self.con.commit()
+
+    def get_tid(self, term):
+        c = self.con.cursor()
+        ## check if term exists
+        c.execute("SELECT id FROM terms WHERE term = ?", [term])
+        tid = c.fetchone()
+        if tid:
+            tid = tid[0]
+        else:
+            ## we found none, raise error
+            raise RuntimeError("No matching term found")
+        return tid
+
+    def check_duplicate(self, tid, fact):
+        c = self.con.cursor()
+        ## check for duplicates
+        c.execute("SELECT * FROM facts WHERE tid = ? AND fact = ? AND deleted = 0", (tid, fact))
+        if c.fetchone():
+            raise RuntimeError("Duplicate fact for term")
