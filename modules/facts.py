@@ -106,7 +106,7 @@ class FactsDB(Database):
         print res
 
         details = "%s - Term: %s, Index: %s, Total: %s, Created By: %s, Created At: %s" % (
-            res[4], res[1], index, res[3], res[5], res[6])
+            res[4], res[1], index, res[2], res[5], res[6])
         if res[6] and res[7]:
             details = "%s, Updated By: %s, Updated At: %s" % (details, res[7], res[6])
 
