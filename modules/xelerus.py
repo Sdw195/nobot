@@ -16,11 +16,15 @@ class Func(command):
     def run(self, bot, data):
 
         ## TODO: handle results that are too long
-        fun = data.group(1)
-        if fun:
-            if fun.startswith("f#"):
-                fun = fun[2:]
+        fun = None
+        if data.group(1):
+            fun = data.group(1)
+        elif data.group(2):
+            fun = data.group(2)[2:]
 
+        bot.log.debug(fun)
+
+        if fun:
             ## if we are searching for too small a string, complain
             if len(fun) < 3:
                 return bot.say("Too many results, please refine your search")

@@ -34,9 +34,11 @@ class TicketId(command):
         ])
 
     def run(self, bot, data):
-        tid = data.group(1)
+        tid = None
+        if data.group(1):
+            tid = data.group(1)
+        elif data.group(2):
+            tid = data.group(2)[2:]
         if tid:
-            if tid.startswith('t#'):
-                tid = tid[2:]
             tracker = "http://wiki.neurohack.com/transcendence/trac/ticket/%s" % tid
             bot.say("Tracker ticket #%s: %s" % (tid, tracker))
