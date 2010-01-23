@@ -348,10 +348,12 @@ class FactsDB(Database):
             ## mark the row as deleted
             c.execute("""UPDATE facts SET deleted = 1, deleted_at = datetime('now'), deleted_by = ?
                     WHERE tid = ? AND position = ?""", (nick, tid, pos))
-            ## change position of all facts
-            c.execute("UPDATE facts SET position = position - 1 WHERE tid = ? AND position > ?", (tid, pos))
             ## decrement the term counter
             c.execute("UPDATE terms SET count = count - 1 WHERE id = ?", [tid])
+            self.con.commit()
+        for pos in facts:
+            ## change position of all facts
+            c.execute("UPDATE facts SET position = position - 1 WHERE tid = ? AND position > ?", (tid, pos))
             self.con.commit()
 
     def get_tid(self, term):
