@@ -36,11 +36,14 @@ class Func(command):
                 funcs = []
                 for row in rows:
                     id, name, syntax = row.split("|")
+                    if name == fun:
+                        ## we have an exact match, only show this
+                        return bot.say("%s  | More info: http://xelerus.de/index.php?s=functions&function=%s" % (syntax, id))
                     funcs.append(name)
                 return bot.say(", ".join(funcs))
             elif len(rows) == 1:
                 id, name, syntax = rows[0].split("|")
-                return bot.say("%s - http://xelerus.de/index.php?s=functions&function=%s" % (syntax, id))
+                return bot.say("%s  | More info:  http://xelerus.de/index.php?s=functions&function=%s" % (syntax, id))
             else:
                 return bot.say("No results found")
 
