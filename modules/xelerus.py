@@ -34,7 +34,10 @@ class Func(command):
                     id, name, syntax = row.split("|")
                     funcs.append(name)
                 return bot.say(", ".join(funcs))
-            else:
+            elif len(rows) == 1:
                 id, name, syntax = rows[0].split("|")
-                return bot.say("%s - Link: http://xelerus.de/index.php?s=functions&function=%s" % (syntax, id))
+                return bot.say("%s - http://xelerus.de/index.php?s=functions&function=%s" % (syntax, id))
+            else:
+                return bot.say("No results found")
+
 
