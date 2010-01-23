@@ -23,11 +23,11 @@ class TracDB(Database):
             )""")
         self.con.commit()
 
-class TicketId(command):
+class Ticket(command):
 
     regex = r".*(?:%(cmd)s\s+(\d+)|(t#\d+)).*"
     triggers = [r"(?=t#\d+)"]
-    syntax = 'ticketid id | t#id'
+    syntax = 'ticket id | t#id'
     example = "Please see t#320"
     doc = " ".join(
         [ "Print an url to the id of the ticket specified"
@@ -41,4 +41,4 @@ class TicketId(command):
             tid = data.group(2)[2:]
         if tid:
             tracker = "http://wiki.neurohack.com/transcendence/trac/ticket/%s" % tid
-            bot.say("Tracker ticket #%s: %s" % (tid, tracker))
+            bot.say("Ticket #%s: %s" % (tid, tracker))

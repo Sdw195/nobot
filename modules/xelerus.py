@@ -27,7 +27,7 @@ class Func(command):
         if fun:
             ## if we are searching for too small a string, complain
             if len(fun) < 3:
-                return bot.say("Too many results, please refine your search")
+                return bot.say("Search term too broad, please refine it")
 
             fun = web.quote(fun.encode('utf-8'))
             res = web.get("http://xelerus.de/doc_function_raw.php?search=%s" % fun)
