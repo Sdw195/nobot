@@ -26,7 +26,7 @@ class Func(command):
 
         if fun:
             ## if we are searching for too small a string, complain
-            if len(fun) < 3:
+            if len(fun) < 2:
                 return bot.say("Search term too broad, please refine it")
 
             fun = web.quote(fun.encode('utf-8'))
@@ -40,7 +40,11 @@ class Func(command):
                         ## we have an exact match, only show this
                         return bot.say("%s  | More info: http://xelerus.de/index.php?s=functions&function=%s" % (syntax, id))
                     funcs.append(name)
-                return bot.say(", ".join(funcs))
+                names = ", ".join(funcs)
+                if len(names) > 512:
+                    return bot.say("Too many results. Please refine your search")
+
+                return bot.say(names)
             elif len(rows) == 1:
                 id, name, syntax = rows[0].split("|")
                 return bot.say("%s  | More info:  http://xelerus.de/index.php?s=functions&function=%s" % (syntax, id))
