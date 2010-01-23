@@ -18,12 +18,12 @@ class Fact(command):
     def run(self, bot, data):
         self.bot = bot
         self.data = data
+        self.url = "http://oracus.dotright.net"
 
         # self.commands = ["lookup", "search", "learn", "update", "forget", "help"]
-        self.commands = ["lookup", "learn", "help", "update", "updateterm", "forget", "details"]
+        self.commands = ["lookup", "learn", "help", "update", "updateterm", "forget", "details", "list"]
 
         self.factdb = FactsDB(bot)
-
         ## if we have a match in group 1, it is a regular call
         ## if we have it in group2, then it is a shorthand lookup
         if data.group(2):
@@ -33,9 +33,7 @@ class Fact(command):
             return self.lookup(term)
 
         text = data.group(1)
-
-        ## run a regex on the command to see where we 
-        ## want to dispatch too
+        ## run a regex on the command to see where we want to dispatch too
         regex = re.compile(r'\s*(\S+)(.*)')
         match = regex.match(text)
 
@@ -43,16 +41,19 @@ class Fact(command):
             key = match.group(1)
 
             if hasattr(self, key):
-                ## if we have an method that matches key,
-                ## then we call a sub action
+                ## if we have an method that matches key, then we call a sub action
                 getattr(self, key)(match.group(2))
             else:
-                ## we have no method with the given name,
-                ## pass the data on to lookup
+                ## we have no method with the given name, pass the data on to lookup
                 self.lookup(text)
         else:
             bot.say("Error: You must provide a subcommand or term to lookup. Try `fact help'")
 
+
+    def list(self, text):
+        self.bot.say("View all facts and terms at: %s" % self.url)
+
+    list.doc = "View all terms and facts"
 
     def learn(self, text):
         regex = re.compile(r"\s*\[\s*([^\[\]]+)\s*\]\s+(.*)")

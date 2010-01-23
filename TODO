@@ -10,7 +10,6 @@ COMMANDS
     http://wiki.neurohack.com/transcendence/trac/report/11?format=csv
     Set referrer that can be traced back to source
 -   Add a `whoami' command that prints owner and maintainer details
--   Fact. Add a command to show details on a fact. Date added, nick.
 
 INTERNAL
 -   Generalize the handling of subcommands
@@ -25,3 +24,5 @@ INTERNAL
     spawn two processes
 -   Get rid of __init__.py
 -   unlock command triggers the locked message, even though it works
+-   Add a registration facility, so that we can have the possibility of only responding to
+    ppl who are authed with it

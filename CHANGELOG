@@ -1,3 +1,4 @@
+-   Added fact list command
 -   Added ping command
 -   Add details command to facts. Shows details about a fact
 -   fact shorthand lookup now takes an index also
