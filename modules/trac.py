@@ -25,7 +25,7 @@ class TracDB(Database):
 
 class TicketId(command):
 
-    regex = r".*(?:%(cmd)s\s+\d+|(t#\d+)).*"
+    regex = r".*(?:%(cmd)s\s+(\d+)|(t#\d+)).*"
     triggers = [r"(?=t#\d+)"]
     syntax = 'ticketid id | t#id'
     example = "Please see t#320"
@@ -36,7 +36,7 @@ class TicketId(command):
     def run(self, bot, data):
         tid = data.group(1)
         if tid:
-            ## cut off t#
-            tid = tid[2:]
+            if tid.startswith('t#'):
+                tid = tid[2:]
             tracker = "http://wiki.neurohack.com/transcendence/trac/ticket/%s" % tid
             bot.say("Tracker ticket #%s: %s" % (tid, tracker))
