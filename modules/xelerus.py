@@ -36,6 +36,8 @@ class Func(command):
                 funcs = []
                 for row in rows:
                     id, name, syntax = row.split("|")
+                    if name.endswith("_deprecated"):
+                        continue
                     if name.lower() == fun:
                         ## we have an exact match, only show this
                         return bot.say("%s  | More info: http://xelerus.de/index.php?s=functions&function=%s" % (syntax, id))
