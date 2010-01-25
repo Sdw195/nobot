@@ -1,7 +1,7 @@
 from lib.bot import command
 from lib.tools import Database
 
-import re
+import re, os, sqlite3
 
 class Fact(command):
 
@@ -282,6 +282,7 @@ class FactsDB(Database):
         ## add one to term count
         c.execute("""UPDATE terms SET count = count + 1 WHERE id = ?""", [tid])
         self.con.commit()
+        self.write_facts()
 
     def updateterm(self, term, newterm):
         c = self.con.cursor()
@@ -289,6 +290,7 @@ class FactsDB(Database):
 
         c.execute("UPDATE terms SET term = ? WHERE id = ?", (newterm, tid))
         self.con.commit()
+        self.write_facts()
 
     def update(self, term, fact, author, index):
         c = self.con.cursor()
@@ -304,6 +306,7 @@ class FactsDB(Database):
         c.execute("""UPDATE facts SET fact = ?, updated_by = ?, updated_at = datetime('now') 
                   WHERE tid = ? AND position = ? AND deleted = 0""", (fact, author, tid, index))
         self.con.commit()
+        self.write_facts()
 
     def lookup(self, term, index=None):
         term = "%%%s%%" % term
@@ -366,6 +369,7 @@ class FactsDB(Database):
             ## change position of all facts
             c.execute("UPDATE facts SET position = position - 1 WHERE tid = ? AND position > ?", (tid, pos))
             self.con.commit()
+        self.write_facts()
 
     def get_tid(self, term):
         c = self.con.cursor()
@@ -385,3 +389,60 @@ class FactsDB(Database):
         c.execute("SELECT * FROM facts WHERE tid = ? AND fact = ? AND deleted = 0", (tid, fact))
         if c.fetchone():
             raise RuntimeError("Duplicate fact for term")
+
+    def write_facts(self):
+        """Write an html file with all facts"""
+        self.con.row_factory = sqlite3.Row
+        c = self.con.cursor()
+        htmlfile = "%s.facts.html" % os.path.join(self.bot.config.datadir, self.bot.config.configname)
+
+        def escape(text):
+            text = re.sub("<", "&lt;", text)
+            return re.sub(">", "&gt;", text)
+
+        res = c.execute("SELECT * from terms, facts WHERE terms.id = facts.tid AND facts.deleted = 0 ORDER BY facts.tid, facts.position")
+
+        html = "<html><head><title>Oracus fact list</title><style type='text/css'>%s</style></head>"
+
+        css = "body{background-color:#333;padding:5px;margin:0;color:#fff;font-size:12px;}"
+        css = css + "dl {border:0px dotted #999;padding:10px;margin:10px 10px;}"
+        css = css + "dl dt{font-weight:bold;margin-bottom:10px;}"
+        css = css + "dl dd{padding:0px;margin:0px 0px 5px;color:#999}"
+        css = css + "dl dd .fact{color:#fff}"
+        css = css + "dl dd .meta{margin-left:10px;color:#999;font-size:10px;}"
+        css = css + "hr{border:0;border-top: 1px dotted #999;}"
+        html = html % css
+
+        html = html + "<body>"
+        facts = res.fetchall()
+        length = len(facts)
+        term = None
+        for i, fact in zip(range(length), facts):
+            if fact['term'] <> term:
+                term = fact['term']
+                html = html + "<dl><dt>" + fact['term'] + "</dt>"
+
+            #html = html + "<dd>%s. <span class='fact'>%s</span> <span class='meta'>Created by: %s <span class='date'>(%s)</span></span>" % \
+            html = html + "<dd>%s. <span class='fact'>%s</span></dd>" % \
+                ( fact['position']
+                , escape(fact['fact'])
+                )
+
+            #if fact['updated_at']:
+            #    html = html + "<span class='meta' style='margin-left: 10px;'>Updated by: %s <span class='date'>(%s)</span></span>" % \
+            #    ( fact['updated_by'] or ""
+            #    , fact['updated_at'] or ""
+            #    )
+            #html = html + "</dd>"
+
+            if i+1 >= length or facts[i+1]['term'] <> term:
+                html = html + "</dl>"
+            if not (i+1 >= length) and facts[i+1]['term'] <> term:
+                html = html + "<hr />"
+
+        html + "</body></html>"
+
+        with open(htmlfile, "w") as f:
+            f.write(html)
+
+

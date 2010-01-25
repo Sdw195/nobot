@@ -12,6 +12,7 @@ COMMANDS
 -   Add a `whoami' command that prints owner and maintainer details
 -   A 'note' command, that will add a todo (more or less)
 -   Add a [random] specifier to the page selector
+-   Channel wide notifications. SUbscription / notification style
 
 INTERNAL
 -   Generalize the handling of subcommands
@@ -35,3 +36,4 @@ INTERNAL
 -   Add access control for Facts module and sub-commands
 -   Add a write function to Facts that writes the fact list to disk as html. No framework plz
 -   Test: are we actually being authed properly?
+-   Remember, handle NICK event also (for tracking nick changes)

@@ -1,3 +1,4 @@
+-   Added a write function to Facts that writes the fact list to disk as html
 -   Added Remember module, which implents base 'tell' and 'seen' commands
 -   Added repeated dispatch. Cut out matched trigger, then re-dispatch.
 -   Added xelerus function lookup
