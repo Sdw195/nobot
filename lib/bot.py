@@ -230,7 +230,10 @@ class Nobot(irc.Bot):
                 ## use group1 from match to try the dispatch again
                 if hasattr(trigger, 'group'):
                     ## sub away the matched trigger
-                    bytes = re.sub(_trigger_, "", text)
+                    try:
+                        bytes = re.sub(_trigger_, "", text)
+                    except Exception:
+                        break
                     ## we don't want to keep sending same text over and over, right?
                     if bytes <> text:
                         self.dispatch(origin, (bytes, event, args))
