@@ -16,6 +16,10 @@ class Seen(command):
         except AttributeError:
             bot.say("You must specify a nick to query")
 
+        if nick == origin.nick:
+            bot.say("Wait! Really? That is just weird!")
+
+
         db = RememberDB(bot)
 
         try:
