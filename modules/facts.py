@@ -26,7 +26,6 @@ class Fact(command):
         self.factdb = FactsDB(bot)
         ## if we have a match in group 1, it is a regular call
         ## if we have it in group2, then it is a shorthand lookup
-        bot.log.debug(data.groups())
         if data.group(2):
             term = data.group(2).strip()
             if data.group(3):
