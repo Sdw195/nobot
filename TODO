@@ -34,6 +34,5 @@ INTERNAL
 -   When a user is repeatedly spamming commands, inform him that he should use a query window?
 -   Func search, remove any non, word chars from end of search term (such as ?)
 -   Add access control for Facts module and sub-commands
--   Add a write function to Facts that writes the fact list to disk as html. No framework plz
 -   Test: are we actually being authed properly?
 -   Remember, handle NICK event also (for tracking nick changes)

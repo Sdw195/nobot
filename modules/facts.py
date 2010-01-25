@@ -394,7 +394,7 @@ class FactsDB(Database):
         """Write an html file with all facts"""
         self.con.row_factory = sqlite3.Row
         c = self.con.cursor()
-        htmlfile = "%s.facts.html" % os.path.join(self.bot.config.datadir, self.bot.config.configname)
+        htmlfile = "%s.facts.html" % os.path.join(self.bot.config.datadir, "html", self.bot.config.configname)
 
         def escape(text):
             text = re.sub("<", "&lt;", text)
