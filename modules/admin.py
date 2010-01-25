@@ -20,7 +20,7 @@ class Join(command):
 
 class Part(command):
 
-    rule = r" *(#{1,}\S+)?"
+    rule = r" +(#{1,}\S+)?"
 
     syntax = 'part [#channel]'
     doc = " ".join(

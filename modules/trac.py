@@ -25,7 +25,7 @@ class TracDB(Database):
 
 class Ticket(command):
 
-    regex = r".*(?:%(cmd)s\s+(\d+)|(t#\d+)).*"
+    regex = r".*?(?:%(cmd)s\s+(\d+)|(t#\d+)).*"
     triggers = [r"(?=t#\d+)"]
     syntax = 'ticket id | t#id'
     example = "Please see t#320"

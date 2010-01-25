@@ -1,11 +1,11 @@
 from lib.bot import command
 from lib.tools import Database
 
-import os, re, datetime, time, sqlite3
+import re
 
 class Fact(command):
 
-    regex = r".*(?:%(cmd)s\s+(.*)|\?\[([^\[\]]+)\]\s*(\[\d+\])?)"
+    regex = r".*?(?:%(cmd)s\s+(.*)|\?\[([^\[\]]+)\]\s*(\[\d+\])?)"
     triggers = [r"(?=\?\[[^\[\]]+\])"]
 
     syntax = "fact subcommand or term [args]"
@@ -26,6 +26,7 @@ class Fact(command):
         self.factdb = FactsDB(bot)
         ## if we have a match in group 1, it is a regular call
         ## if we have it in group2, then it is a shorthand lookup
+        bot.log.debug(data.groups())
         if data.group(2):
             term = data.group(2).strip()
             if data.group(3):

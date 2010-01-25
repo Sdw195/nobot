@@ -16,14 +16,14 @@ class __metacommand__(type):
         ## set up this command
         cls._name_ = name.lower()
         cls._path_ = "%s.%s" % (cls.__module__.partition('.')[2], cls._name_)
-        cls._event_ = cls.event.upper()
+        cls._event_ = [c.upper() for c in cls.event]
 
 class command():
 
     syntax = None
     example = None
     doc = None
-    event = "PRIVMSG"
+    event = ["PRIVMSG"]
     rule = r"( +(.*))?"
     regex = None
     triggers = []
@@ -193,7 +193,7 @@ class Nobot(irc.Bot):
 
         for cmd in command.modules:
             ## if we don't match the event, try next command
-            if event != cmd._event_:
+            if not event in cmd._event_:
                 continue
 
             self.log.debug("TESTING COMMAND %s %s %s" % (cmd._name_, cmd.event, cmd._regex_.pattern))
@@ -230,8 +230,10 @@ class Nobot(irc.Bot):
                 ## use group1 from match to try the dispatch again
                 if hasattr(trigger, 'group'):
                     ## sub away the matched trigger
-                    text = re.sub(_trigger_, "", text)
-                    self.dispatch(origin, (text, event, args))
+                    bytes = re.sub(_trigger_, "", text)
+                    ## we don't want to keep sending same text over and over, right?
+                    if bytes <> text:
+                        self.dispatch(origin, (bytes, event, args))
 
                 ## stop looking for matches
                 break

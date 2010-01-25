@@ -44,7 +44,7 @@ class Help(command):
 
 class Version(command):
 
-    rule = ".*"
+    rule = ""
 
     doc = "Show version information"
 

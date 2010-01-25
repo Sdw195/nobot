@@ -2,7 +2,7 @@ from lib.bot import command
 
 class Ping(command):
 
-    rule = ".*"
+    rule = ""
     doc = "Pong yourself"
 
     def run(self, bot, data):

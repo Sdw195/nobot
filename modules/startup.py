@@ -3,7 +3,7 @@ from lib.bot import command
 class Startup(command):
 
     regex = r'.*'
-    event = '251'
+    event = ['251']
     action = False
 
     def run(self, bot, data):
