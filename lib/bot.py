@@ -187,14 +187,13 @@ class Nobot(irc.Bot):
 
         trigger = self._trigger_.match(text)
         ## if we didnt match a trigger, this is a message and sent in a channel, don't continue
+        _trigger_ = text
         if not trigger and type(origin.sender) is str:
             if origin.sender.startswith("#") and event == 'PRIVMSG':
                 return False
         elif trigger:
             ## get the text we triggered on
             _trigger_ = trigger.group(1)
-        else:
-            _trigger_ = text
 
         for cmd in command.modules:
             ## if we don't match the event, try next command

@@ -247,8 +247,8 @@ class FactsDB(Database):
                     deleted_at DATETIME DEFAULT NULL,
                     deleted_by TEXT DEFAULT NULL
                 )""")
-        except Exception, e:
-            print e
+        except Exception:
+            pass
 
         self.con.commit()
 

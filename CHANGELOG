@@ -1,3 +1,4 @@
+-   Added Remember module, which implents base 'tell' and 'seen' commands
 -   Added repeated dispatch. Cut out matched trigger, then re-dispatch.
 -   Added xelerus function lookup
 -   Added fact list command
