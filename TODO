@@ -10,6 +10,10 @@ COMMANDS
     http://wiki.neurohack.com/transcendence/trac/report/11?format=csv
     Set referrer that can be traced back to source
 -   Add a `whoami' command that prints owner and maintainer details
+-   Add a 'tell' command, that will tell `nick' text when he is seen again
+-   Add a 'seen' command that will inform on when 'nick' was last seen
+-   A 'note' command, that will add a todo (more or less)
+-   Add a [random] specifier to the page selector
 
 INTERNAL
 -   Generalize the handling of subcommands
@@ -26,3 +30,10 @@ INTERNAL
 -   unlock command triggers the locked message, even though it works
 -   Add a registration facility, so that we can have the possibility of only responding to
     ppl who are authed with it
+-   Somehow magically be able to parse a message like t#123 or t#311 (ie. two commands in one message)
+-   Filter out deprecated functions from xelerus func list
+-   When a user is repeatedly spamming commands, inform him that he should use a query window?
+-   Func search, remove any non, word chars from end of search term (such as ?)
+-   Add access control for Facts module and sub-commands
+-   Remembber module. Mix of Seen and Tell
+-   Add a write function to Facts that writes the fact list to disk as html. No framework plz

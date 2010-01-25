@@ -187,9 +187,9 @@ class Nobot(irc.Bot):
             return False
         elif trigger:
             ## get the text we triggered on
-            trigger = trigger.group(1)
+            _trigger_ = trigger.group(1)
         else:
-            trigger = text
+            _trigger_ = text
 
         for cmd in command.modules:
             ## if we don't match the event, try next command
@@ -198,7 +198,7 @@ class Nobot(irc.Bot):
 
             self.log.debug("TESTING COMMAND %s %s %s" % (cmd._name_, cmd.event, cmd._regex_.pattern))
 
-            match = cmd._regex_.match(trigger)
+            match = cmd._regex_.match(_trigger_)
             if match:
 
                 lockfile = "%s.lock" % os.path.join(self.config.datadir, self.config.configname)
@@ -206,7 +206,7 @@ class Nobot(irc.Bot):
                     self.msg(origin.sender, "Dispatch Locked. No commands will be processed.")
                     continue
 
-                self.log.info("MATCHED COMMAND %s: %s %s %s" % (cmd._name_, origin.sender, event, trigger))
+                self.log.info("MATCHED COMMAND %s: %s %s %s" % (cmd._name_, origin.sender, event, _trigger_))
 
                 if not self.access(origin, cmd):
                     self.log.info("ACCESS DENIED - %s" % cmd._path_)
@@ -226,6 +226,12 @@ class Nobot(irc.Bot):
                         dispatch(*targs)
                 except Exception, e:
                     self.error(origin)
+
+                ## use group1 from match to try the dispatch again
+                if hasattr(trigger, 'group'):
+                    ## sub away the matched trigger
+                    text = re.sub(_trigger_, "", text)
+                    self.dispatch(origin, (text, event, args))
 
                 ## stop looking for matches
                 break
