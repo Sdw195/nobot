@@ -20,8 +20,8 @@ class Seen(command):
 
         try:
             seen = db.seen(nick)
-        except (RuntimeError, TypeError):
-            bot.say("I do not remember seeing %s come or go", nick)
+        except RuntimeError:
+            bot.say("I do not remember seeing %s come or go" % nick)
         else:
             if seen == 'now':
                 bot.say("%s is here now" % nick)
