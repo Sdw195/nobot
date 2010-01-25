@@ -20,8 +20,8 @@ class Seen(command):
 
         try:
             seen = db.seen(nick)
-        except RuntimeError:
-            bot.say("I do not remember seeing %s", nick)
+        except (RuntimeError, TypeError):
+            bot.say("I do not remember seeing %s come or go", nick)
         else:
             if seen == 'now':
                 bot.say("%s is here now" % nick)
@@ -118,7 +118,7 @@ class RememberDB(Database):
         c.execute("SELECT nick, date FROM seen WHERE nick = ?", [nick])
         res = c.fetchone()
         if not res:
-            raise RuntimeError("No results found")
+            raise RuntimeError
         else:
             return res[1]
 
