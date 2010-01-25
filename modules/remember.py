@@ -82,7 +82,11 @@ class HandleSeen(command):
                 tells = db.joined(data.nick)
                 if tells:
                     for tell in tells:
-                        bot.say("%s: %s said: %s on %s" % (tell[1], tell[3], tell[2], tell[4]))
+                        bot.private("%s: %s said: \"%s\" on %s" % \
+                                ( tell[1]
+                                , tell[3]
+                                , tell[2]
+                                , tell[4]))
 
 
 class RememberDB(Database):
