@@ -17,8 +17,7 @@ class Database(object):
 
         self.con = sqlite3.connect(self.filename)
 
-        if created:
-            self.create_structure()
+        self.test_structure()
 
     def create_db_location(self):
         if not os.path.isdir(self.bot.config.datadir):
@@ -27,3 +26,5 @@ class Database(object):
     def create_structure(self):
         pass
 
+    def test_structure(self):
+        pass

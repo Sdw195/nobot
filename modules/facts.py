@@ -226,28 +226,39 @@ class FactsDB(Database):
 
     def create_structure(self):
         c = self.con.cursor()
-        c.execute("""
-            CREATE TABLE terms (
-                id INTEGER PRIMARY KEY,
-                term TEXT,
-                count INTEGER
-            )""")
-        c.execute("""
-            CREATE TABLE facts (
-                id INTEGER PRIMARY KEY,
-                tid INTEGER,
-                position INTEGER DEFAULT 1,
-                fact TEXT,
-                deleted INTEGER DEFAULT 0,
-                created_at DATETIME,
-                created_by TEXT,
-                updated_at DATETIME DEFAULT NULL,
-                updated_by TEXT DEFAULT NULL,
-                deleted_at DATETIME DEFAULT NULL,
-                deleted_by TEXT DEFAULT NULL
-            )""")
+        try:
+            c.execute("""
+                CREATE TABLE terms (
+                    id INTEGER PRIMARY KEY,
+                    term TEXT,
+                    count INTEGER
+                )""")
+            c.execute("""
+                CREATE TABLE facts (
+                    id INTEGER PRIMARY KEY,
+                    tid INTEGER,
+                    position INTEGER DEFAULT 1,
+                    fact TEXT,
+                    deleted INTEGER DEFAULT 0,
+                    created_at DATETIME,
+                    created_by TEXT,
+                    updated_at DATETIME DEFAULT NULL,
+                    updated_by TEXT DEFAULT NULL,
+                    deleted_at DATETIME DEFAULT NULL,
+                    deleted_by TEXT DEFAULT NULL
+                )""")
+        except Exception, e:
+            print e
 
         self.con.commit()
+
+    def test_structure(self):
+        c = self.con.cursor()
+        try:
+            c.execute("SELECT * FROM terms LIMIT 1")
+            c.execute("SELECT * FROM facts LIMIT 1")
+        except Exception:
+            self.create_structure()
 
     def learn(self, term, fact, author):
         c = self.con.cursor()

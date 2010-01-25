@@ -60,6 +60,10 @@ class Nobot(irc.Bot):
     def setup(self, _reload=False):
 
         if _reload:
+            ## XXX: does not work yet
+            ## reload lib
+            # for mod in ["tools", "irc", "bot"]:
+                # self.load_module(mod, folder="lib", _reload=True)
             command.modules = []
 
         modules = []
@@ -181,10 +185,11 @@ class Nobot(irc.Bot):
 
         self.log.debug("DISPATCH %s %s %s" % (origin.sender, event, text))
 
-        ## if we didnt match a trigger and are in a channel don't continue
         trigger = self._trigger_.match(text)
-        if not trigger and type(origin.sender) is str and origin.sender.startswith('#'):
-            return False
+        ## if we didnt match a trigger, this is a message and sent in a channel, don't continue
+        if not trigger and type(origin.sender) is str:
+            if origin.sender.startswith("#") and event == 'PRIVMSG':
+                return False
         elif trigger:
             ## get the text we triggered on
             _trigger_ = trigger.group(1)
@@ -196,7 +201,7 @@ class Nobot(irc.Bot):
             if not event in cmd._event_:
                 continue
 
-            self.log.debug("TESTING COMMAND %s %s %s" % (cmd._name_, cmd.event, cmd._regex_.pattern))
+            self.log.debug("TESTING COMMAND %s %s %s" % (cmd._name_, cmd._event_, cmd._regex_.pattern))
 
             match = cmd._regex_.match(_trigger_)
             if match:
