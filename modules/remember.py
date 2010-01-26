@@ -14,10 +14,13 @@ class Seen(command):
             if not nick:
                 raise AttributeError
         except AttributeError:
-            bot.say("You must specify a nick to query")
+            return bot.say("You must specify a nick to query")
 
-        if nick == origin.nick:
-            bot.say("Wait! Really? That is just weird!")
+        if nick == data.origin.nick:
+            return bot.say("What! Really? That is a weird thing to ask for...")
+
+        if nick == "George":
+            return bot.say("Hah. Yeah right!")
 
 
         db = RememberDB(bot)
