@@ -396,9 +396,12 @@ class FactsDB(Database):
         c = self.con.cursor()
         htmlfile = "%s.facts.html" % os.path.join(self.bot.config.datadir, "html", self.bot.config.configname)
 
-        def escape(text):
-            text = re.sub("<", "&lt;", text)
-            return re.sub(">", "&gt;", text)
+        def escape(s):
+            s = s.sub("&", "&amp;")
+            s = s.sub("<", "&lt;")
+            s = s.sub(">", "&gt;")
+            s = s.sub('"', "&quot;")
+            return s
 
         res = c.execute("SELECT * from terms, facts WHERE terms.id = facts.tid AND facts.deleted = 0 ORDER BY facts.tid, facts.position")
 
