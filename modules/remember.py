@@ -3,7 +3,7 @@ from lib.tools import Database
 
 class Seen(command):
 
-    rule = " +(\w+)"
+    rule = " +(\S+)"
     doc = "Display info on when `nick' was last logged in"
     syntax = "seen `nick'"
 
