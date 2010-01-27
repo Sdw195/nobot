@@ -1,3 +1,4 @@
+-   Pretty print time deltas
 -   Remember now handles nick changes
 -   Facts and Remember now check for terms and nicks case insensitive
 -   Added a write function to Facts that writes the fact list to disk as html

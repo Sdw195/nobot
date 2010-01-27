@@ -28,3 +28,33 @@ class Database(object):
 
     def test_structure(self):
         pass
+
+
+def timedelta_to_string(delta):
+
+    def calc(amount, dividend):
+        return (amount/dividend, amount%dividend)
+
+    def pluralize(singular, plural, count):
+        return singular if count == 1 else plural
+
+    years, days = calc(delta.days, 365)
+    months, days = calc(days, 12)
+    weeks, days = calc(days, 7)
+    hours, seconds = calc(delta.seconds, 3600)
+    minutes, seconds = calc(seconds, 60)
+
+    date = []
+    if years > 0:
+        date.append("%s %s" % (years, pluralize("Year", "Years", years)))
+    if months > 0:
+        date.append("%s %s" % (months, pluralize("Month", "Months", months)))
+    if weeks > 0:
+        date.append("%s %s" % (weeks, pluralize("Week", "Weeks", weeks)))
+    if days > 0:
+        date.append("%s %s" % (days, pluralize("Day", "Days", days)))
+    if hours > 0:
+        date.append("%s %s" % (hours, pluralize("Hour", "Hours", hours)))
+    if minutes > 0:
+        date.append("%s %s" % (minutes, pluralize("Minute", "Minutes", minutes)))
+    return ", ".join(date)

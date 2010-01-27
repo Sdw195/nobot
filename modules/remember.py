@@ -1,22 +1,19 @@
 from lib.bot import command
-from lib.tools import Database
+from lib.tools import Database, timedelta_to_string
+import datetime
 
 class Seen(command):
-
     rule = " +(\S+)"
     doc = "Display info on when `nick' was last logged in"
     syntax = "seen `nick'"
-
     def run(self, bot, data):
         nick = data.group(1)
         if not nick:
             return bot.say("You must specify a nick to query")
-
         if nick.lower() == data.origin.nick.lower():
             return bot.say("What! Really? That is a weird thing to ask for...")
         if nick.lower == "george":
             return bot.say("Hah. Yeah right!")
-
         db = RememberDB(bot)
         try:
             seen = db.seen(nick)
@@ -26,15 +23,17 @@ class Seen(command):
             if seen == 'now':
                 bot.say("%s is here now" % nick)
             else:
-                bot.say("%s was last seen %s" % (nick, seen))
+                then = datetime.datetime.strptime(seen, "%Y-%m-%d %H:%M:%S")
+                now = datetime.datetime.now()
+                delta = now - then
+                ago = timedelta_to_string(delta)
+                bot.say("%s was last seen %s ago" % (nick, ago))
 
 
 class Tell(command):
-
     rule = " +(\w+) +(.*)"
     doc = "Tell `nick' message when he is seen next time"
     syntax = "tell `nick' I wanted you to read this"
-
     def run(self, bot, data):
         nick = data.group(1)
         if not nick:
@@ -42,7 +41,6 @@ class Tell(command):
         msg = data.group(2)
         if not msg:
             return bot.say("You must specify a message to send to nick")
-
         db = RememberDB(bot)
         try:
             by = data.origin.nick
@@ -54,13 +52,10 @@ class Tell(command):
 
 
 class HandleSeen(command):
-
     regex = r'.*'
     event = ["PART", "JOIN", "QUIT"]
     action = False
-
     def run(self, bot, data):
-
         if data.nick:
             bot.log.debug(data.nick)
             db = RememberDB(bot)
@@ -72,32 +67,27 @@ class HandleSeen(command):
                 tells = db.joined(data.nick)
                 if tells:
                     for tell in tells:
-                        bot.private("%s: %s said: \"%s\" on %s" % \
-                                ( tell[1]
-                                , tell[3]
-                                , tell[2]
-                                , tell[4]))
+                        then = datetime.datetime.strptime(tell[4], "%Y-%m-%d %H:%M:%S")
+                        now = datetime.datetime.now()
+                        delta = now - then
+                        ago = timedelta_to_string(delta)
+                        bot.private("%s: %s said: \"%s\" %s ago" % \
+                                (tell[1], tell[3], tell[2], ago))
+
 
 class HandleNick(command):
-
     regex = r'(.*)'
     event = ["NICK"]
     action = False
-
     def run(self, bot, data):
-
         oldnick = data.nick
         newnick = data.group(1)
-
         if oldnick.lower() == newnick.lower():
             return False
-
         ## log out oldnick, and join new nick
         db = RememberDB(bot)
         db.parted(oldnick)
         db.joined(newnick)
-
-
 
 
 class RememberDB(Database):
