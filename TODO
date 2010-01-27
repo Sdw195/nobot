@@ -35,4 +35,5 @@ INTERNAL
 -   Func search, remove any non, word chars from end of search term (such as ?)
 -   Add access control for Facts module and sub-commands
 -   Test: are we actually being authed properly?
--   Remember, handle NICK event also (for tracking nick changes)
+-   Generate html with anchors for all the terms
+-   Have cross referenced terms using hte {term} syntax in a fact

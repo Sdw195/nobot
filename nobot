@@ -40,8 +40,8 @@ enable = []
 
 class Main():
 
-    version = '0.0.15'
-    versionstring = "Why get others to do it when you can do it yourself"
+    version = '0.0.16'
+    versionstring = "OK, I *think* I really see you now... >.<"
     verbosity = 50
     executable = os.path.basename(sys.argv[0])
     basedir = os.path.dirname(os.path.abspath(sys.argv[0]))

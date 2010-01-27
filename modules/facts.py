@@ -263,7 +263,7 @@ class FactsDB(Database):
     def learn(self, term, fact, author):
         c = self.con.cursor()
         ## see if we already have a matching term
-        c.execute("SELECT id, count FROM terms WHERE term = ?", [term])
+        c.execute("SELECT id, count FROM terms WHERE lower(term) = ?", [term.lower()])
         res = c.fetchone()
         if res:
             tid, pos = res
@@ -309,11 +309,11 @@ class FactsDB(Database):
         self.write_facts()
 
     def lookup(self, term, index=None):
-        term = "%%%s%%" % term
+        term = "%%%s%%" % term.lower()
         index = index or 1
         c = self.con.cursor()
         c.execute("""SELECT terms.id, terms.term, terms.count, facts.tid, facts.position, facts.fact
-                  FROM terms, facts WHERE terms.term LIKE ?  AND facts.tid = terms.id 
+                  FROM terms, facts WHERE lower(terms.term) LIKE ?  AND facts.tid = terms.id 
                   AND facts.position = ? AND facts.deleted = 0""", (term, index))
         res = c.fetchone()
 
@@ -323,13 +323,13 @@ class FactsDB(Database):
         return "%s[%s/%s]: %s" % (res[1], index, res[2], res[5])
 
     def details(self, term, index=None):
-        term = "%%%s%%" % term
+        term = "%%%s%%" % term.lower()
         index = index or 1
         c = self.con.cursor()
         c.execute("""SELECT terms.id, terms.term, terms.count, facts.tid, facts.fact,
                   facts.created_by, strftime("%H:%M %d/%m/%Y", facts.created_at),
                   facts.updated_by, strftime("%H:%M %d/%m/%Y", facts.updated_at)
-                  FROM terms, facts WHERE terms.term LIKE ? AND facts.tid = terms.id 
+                  FROM terms, facts WHERE lower(terms.term) LIKE ? AND facts.tid = terms.id 
                   AND facts.position = ? AND facts.deleted = 0""", (term, index))
         res = c.fetchone()
 
@@ -374,7 +374,7 @@ class FactsDB(Database):
     def get_tid(self, term):
         c = self.con.cursor()
         ## check if term exists
-        c.execute("SELECT id FROM terms WHERE term = ?", [term])
+        c.execute("SELECT id FROM terms WHERE lower(term) = ?", [term.lower()])
         tid = c.fetchone()
         if tid:
             tid = tid[0]
@@ -447,5 +447,3 @@ class FactsDB(Database):
 
         with open(htmlfile, "w") as f:
             f.write(html)
-
-

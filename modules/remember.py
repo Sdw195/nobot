@@ -8,23 +8,16 @@ class Seen(command):
     syntax = "seen `nick'"
 
     def run(self, bot, data):
-        nick = None
-        try:
-            nick = data.group(1)
-            if not nick:
-                raise AttributeError
-        except AttributeError:
+        nick = data.group(1)
+        if not nick:
             return bot.say("You must specify a nick to query")
 
-        if nick == data.origin.nick:
+        if nick.lower() == data.origin.nick.lower():
             return bot.say("What! Really? That is a weird thing to ask for...")
-
-        if nick == "George":
+        if nick.lower == "george":
             return bot.say("Hah. Yeah right!")
 
-
         db = RememberDB(bot)
-
         try:
             seen = db.seen(nick)
         except RuntimeError:
@@ -43,23 +36,14 @@ class Tell(command):
     syntax = "tell `nick' I wanted you to read this"
 
     def run(self, bot, data):
-        nick = None
-        try:
-            nick = data.group(1)
-            if not nick:
-                raise AttributeError
-        except AttributeError:
-            bot.say("You must specify a nick to tell")
-        msg = None
-        try:
-            msg = data.group(2)
-            if not msg:
-                raise AttributeError
-        except AttributeError:
-            bot.say("You must specify a message to send to nick")
+        nick = data.group(1)
+        if not nick:
+            return bot.say("You must specify a nick to tell")
+        msg = data.group(2)
+        if not msg:
+            return bot.say("You must specify a message to send to nick")
 
         db = RememberDB(bot)
-
         try:
             by = data.origin.nick
             tell = db.tell(nick, msg, by)
@@ -72,14 +56,17 @@ class Tell(command):
 class HandleSeen(command):
 
     regex = r'.*'
-    event = ["PART", "JOIN"]
+    event = ["PART", "JOIN", "QUIT"]
     action = False
 
     def run(self, bot, data):
 
         if data.nick:
+            bot.log.debug(data.nick)
             db = RememberDB(bot)
-            if data.event == "PART":
+            if data.event in ["PART", "QUIT"]:
+                if data.nick == bot.nick:
+                    return False
                 db.parted(data.nick)
             elif data.event == "JOIN":
                 tells = db.joined(data.nick)
@@ -90,6 +77,27 @@ class HandleSeen(command):
                                 , tell[3]
                                 , tell[2]
                                 , tell[4]))
+
+class HandleNick(command):
+
+    regex = r'(.*)'
+    event = ["NICK"]
+    action = False
+
+    def run(self, bot, data):
+
+        oldnick = data.nick
+        newnick = data.group(1)
+
+        if oldnick.lower() == newnick.lower():
+            return False
+
+        ## log out oldnick, and join new nick
+        db = RememberDB(bot)
+        db.parted(oldnick)
+        db.joined(newnick)
+
+
 
 
 class RememberDB(Database):
@@ -126,7 +134,7 @@ class RememberDB(Database):
 
     def seen(self, nick):
         c = self.con.cursor()
-        c.execute("SELECT nick, date FROM seen WHERE nick = ?", [nick])
+        c.execute("SELECT nick, date FROM seen WHERE lower(nick) = ?", [nick.lower()])
         res = c.fetchone()
         if not res:
             raise RuntimeError
@@ -136,30 +144,31 @@ class RememberDB(Database):
     def parted(self, nick):
         c = self.con.cursor()
         ## check if nick is already in db
-        c.execute("SELECT nick FROM seen WHERE nick = ?", [nick])
+        c.execute("SELECT nick FROM seen WHERE lower(nick) = ?", [nick.lower()])
         res = c.fetchone()
         if not res:
             c.execute("INSERT INTO seen (nick, date) VALUES(?, datetime('now'))", [nick])
         else:
-            c.execute("UPDATE seen SET date = datetime('now') WHERE nick = ?", [nick])
+            c.execute("UPDATE seen SET date = datetime('now') WHERE lower(nick) = ?", [nick.lower()])
         self.con.commit()
 
     def joined(self, nick):
         c = self.con.cursor()
         ## check if nick is already in db
-        c.execute("SELECT nick FROM seen WHERE nick = ?", [nick])
+        c.execute("SELECT nick FROM seen WHERE lower(nick) = ?", [nick.lower()])
         res = c.fetchone()
+        self.bot.log.debug(res)
         if not res:
             c.execute("INSERT INTO seen (nick, date) VALUES(?, 'now')", [nick])
         else:
-            c.execute("UPDATE seen SET date = 'now' WHERE nick = ?", [nick])
+            c.execute("UPDATE seen SET date = 'now' WHERE lower(nick) = ?", [nick.lower()])
         self.con.commit()
         ## get any tells for this nick
-        c.execute("SELECT * FROM tell WHERE nick = ?", [nick])
+        c.execute("SELECT * FROM tell WHERE lower(nick) = ?", [nick.lower()])
         res = c.fetchall()
         if res:
             ## delete them, so we don't tell them twice
-            c.execute("DELETE FROM tell WHERE nick = ?", [nick])
+            c.execute("DELETE FROM tell WHERE lower(nick) = ?", [nick.lower()])
             self.con.commit()
         return res
 
