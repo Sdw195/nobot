@@ -1,3 +1,4 @@
+-   Added fact switch command
 -   Pretty print time deltas
 -   Remember now handles nick changes
 -   Facts and Remember now check for terms and nicks case insensitive

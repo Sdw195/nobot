@@ -20,7 +20,7 @@ class Fact(command):
         self.data = data
         self.url = "http://oracus.dotright.net"
 
-        self.commands = ["lookup", "learn", "help", "update", "updateterm", "forget", "details", "list", "move"]
+        self.commands = ["lookup", "learn", "help", "update", "updateterm", "forget", "details", "list", "switch"]
 
         self.factdb = FactsDB(bot)
         ## if we have a match in group 1, it is a regular call
