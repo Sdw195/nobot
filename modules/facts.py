@@ -20,8 +20,7 @@ class Fact(command):
         self.data = data
         self.url = "http://oracus.dotright.net"
 
-        # self.commands = ["lookup", "search", "learn", "update", "forget", "help"]
-        self.commands = ["lookup", "learn", "help", "update", "updateterm", "forget", "details", "list"]
+        self.commands = ["lookup", "learn", "help", "update", "updateterm", "forget", "details", "list", "move"]
 
         self.factdb = FactsDB(bot)
         ## if we have a match in group 1, it is a regular call
@@ -51,25 +50,26 @@ class Fact(command):
 
 
     def list(self, text):
-        self.bot.say("View all facts and terms at: %s" % self.url)
+        return self.bot.say("View all facts and terms at: %s" % self.url)
 
     list.doc = "View all terms and facts"
 
     def learn(self, text):
         regex = re.compile(r"\s*\[\s*([^\[\]]+)\s*\]\s+(.*)")
         match = regex.match(text)
+        self.bot.log.debug(match.groups())
         try:
             author = self.data.nick
             key, fact = match.groups("")
             if not key or not fact:
                 raise SyntaxError
-            self.factdb.learn(key, fact, author)
-            self.bot.say("Learned fact")
-
         except (SyntaxError, AttributeError):
-            self.bot.say("Syntax Error. See `fact help learn' for more info")
+            return self.bot.say("Syntax Error. See `fact help learn' for more info")
+        try:
+            self.factdb.learn(key, fact, author)
+            return self.bot.say("Learned fact")
         except RuntimeError, e:
-            self.bot.say(str(e))
+            return self.bot.say(str(e))
 
     learn.syntax = "fact learn [term (spaces allowed)] fact"
     learn.example = "fact learn [2001: A Space Oddysey] A movie by Stanley Kubrick"
@@ -86,17 +86,17 @@ class Fact(command):
             term, index = match.groups()
             if not term:
                 raise SyntaxError
+        except (SyntaxError, AttributeError):
+            return self.bot.say("Syntax Error. See `fact help forget' for more info")
 
+        try:
             self.factdb.forget(term.strip(), self.data.nick, index)
             if index:
-                self.bot.say("Forgot fact")
+                return self.bot.say("Forgot fact")
             else:
-                self.bot.say("Forgot term and all it's facts")
-
-        except (SyntaxError, AttributeError):
-            self.bot.say("Syntax Error. See `fact help forget' for more info")
+                return self.bot.say("Forgot term and all it's facts")
         except RuntimeError, e:
-            self.bot.say(str(e))
+            return self.bot.say(str(e))
 
     forget.syntax = "fact forget term [index]"
     forget.example = "fact forget A Space Oddysey [2]. Forget the 2nd. fact of the term"
@@ -114,13 +114,13 @@ class Fact(command):
 
             if not term:
                 raise SyntaxError
-            fact = self.factdb.lookup(term.strip(), index)
-            self.bot.say(fact)
-
         except (SyntaxError, AttributeError):
-            self.bot.say("Syntax Error. See `fact help lookup' for more info")
+            return self.bot.say("Syntax Error. See `fact help lookup' for more info")
+        try:
+            fact = self.factdb.lookup(term.strip(), index)
+            return self.bot.say(fact)
         except RuntimeError, e:
-            self.bot.say(str(e))
+            return self.bot.say(str(e))
 
     lookup.syntax = "fact lookup term [index] or ?[term][index]"
     lookup.example = "fact lookup A Space Oddysey [2] or ?[Space Oddysey][2]"
@@ -137,14 +137,13 @@ class Fact(command):
         match = regex.match(text)
         try:
             term, index = match.groups()
-
             if not term:
                 raise SyntaxError
-            fact = self.factdb.details(term.strip(), index)
-            self.bot.say(fact)
-
         except (SyntaxError, AttributeError):
-            self.bot.say("Syntax Error. See `fact help details' for more info")
+            return self.bot.say("Syntax Error. See `fact help details' for more info")
+        try:
+            fact = self.factdb.details(term.strip(), index)
+            return self.bot.say(fact)
         except RuntimeError, e:
             self.bot.say(str(e))
 
@@ -152,6 +151,26 @@ class Fact(command):
     details.example = "fact details A Space Oddysey [2]"
     details.doc =  " ".join(
         [ "Show details about a fact."])
+
+
+    def switch(self, text):
+        regex = re.compile(r"\s*(.*?)(?:\s*\[(\d+)\])(?:\s*\[(\d+)\])")
+        match = regex.match(text)
+        try:
+            term, index, newindex = match.groups()
+            if not (term or index or newindex):
+                raise SyntaxError
+        except (SyntaxError, AttributeError):
+            return self.bot.say("Syntax Error. See `fact help switch' for more info")
+        try:
+            self.factdb.switch(term, index, newindex)
+            return self.bot.say("Switched facts")
+        except RuntimeError, e:
+            self.bot.say(str(e))
+
+    switch.syntax = "fact switch term [index] [newindex]"
+    switch.example = "fact switch A Space Oddysey [1] [2]"
+    switch.doc =  "Exchange positions of two facts."
 
 
     def update(self, text):
@@ -162,12 +181,13 @@ class Fact(command):
             term, index, fact = match.groups()
             if not (term or index or fact):
                 raise SyntaxError
-            self.factdb.update(term, fact, author, index)
-            self.bot.say("Updated fact")
         except (SyntaxError, AttributeError):
-            self.bot.say("Syntax Error. See `fact help update' for more info")
+            return self.bot.say("Syntax Error. See `fact help update' for more info")
+        try:
+            self.factdb.update(term, fact, author, index)
+            return self.bot.say("Updated fact")
         except RuntimeError, e:
-            self.bot.say(str(e))
+            return self.bot.say(str(e))
 
     update.syntax = "fact update term [index] newfact"
     update.example = "fact update A Space Oddysey [1] A movie by Stanley Kubrick. It portrays a fictional future"
@@ -181,12 +201,13 @@ class Fact(command):
             term, newterm = match.groups()
             if not (term or newterm):
                 raise SyntaxError
-            self.factdb.updateterm(term, newterm)
-            self.bot.say("Updated term")
         except (SyntaxError, AttributeError):
-            self.bot.say("Syntax Error. See `fact help lookup' for more info")
+            return self.bot.say("Syntax Error. See `fact help lookup' for more info")
+        try:
+            self.factdb.updateterm(term, newterm)
+            return self.bot.say("Updated term")
         except RuntimeError, e:
-            self.bot.say(str(e))
+            return self.bot.say(str(e))
 
     updateterm.syntax = "fact updateterm [term] newterm"
     updateterm.example = "fact updateterm [A Space Oddysey] A Space Oddity"
@@ -289,6 +310,27 @@ class FactsDB(Database):
         tid = self.get_tid(term)
 
         c.execute("UPDATE terms SET term = ? WHERE id = ?", (newterm, tid))
+        self.con.commit()
+        self.write_facts()
+
+    def switch(self, term, index, newindex):
+        c = self.con.cursor()
+        tid = self.get_tid(term)
+
+        ## check if the indexes are valid
+        c.execute("SELECT id FROM facts WHERE position = ? AND tid = ? AND deleted = 0", (index, tid))
+        if not c.fetchone():
+            raise RuntimeError("No fact at first index's position")
+        c.execute("SELECT id FROM facts WHERE position = ? AND tid = ? AND deleted = 0", (newindex, tid))
+        if not c.fetchone():
+            raise RuntimeError("No fact at second index's position")
+
+        ## update facts
+        c.execute("""UPDATE facts SET position = 0 WHERE tid = ? AND position = ? AND deleted = 0""", (tid, index))
+        self.con.commit()
+        c.execute("""UPDATE facts SET position = ? WHERE tid = ? AND position = ? AND deleted = 0""", (index, tid, newindex))
+        self.con.commit()
+        c.execute("""UPDATE facts SET position = ? WHERE tid = ? AND position = 0 AND deleted = 0""", (newindex, tid))
         self.con.commit()
         self.write_facts()
 
@@ -397,10 +439,10 @@ class FactsDB(Database):
         htmlfile = "%s.facts.html" % os.path.join(self.bot.config.datadir, "html", self.bot.config.configname)
 
         def escape(s):
-            s = s.sub("&", "&amp;")
-            s = s.sub("<", "&lt;")
-            s = s.sub(">", "&gt;")
-            s = s.sub('"', "&quot;")
+            s = re.sub("&", "&amp;", s)
+            s = re.sub("<", "&lt;", s)
+            s = re.sub(">", "&gt;", s)
+            s = re.sub('"', "&quot;", s)
             return s
 
         res = c.execute("SELECT * from terms, facts WHERE terms.id = facts.tid AND facts.deleted = 0 ORDER BY facts.tid, facts.position")
