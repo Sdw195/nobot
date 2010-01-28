@@ -28,7 +28,7 @@ class Seen(command):
                 delta = now - then
                 ago = timedelta_to_string(delta)
                 if not ago:
-                    return bot.say("%s just left" % (nick, ago))
+                    return bot.say("%s just left" % nick)
                 bot.say("%s was last seen %s ago" % (nick, ago))
 
 
