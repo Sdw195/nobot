@@ -22,8 +22,6 @@ class Func(command):
         elif data.group(2):
             fun = data.group(2)[2:]
 
-        bot.log.debug(fun)
-
         if fun:
             ## if we are searching for too small a string, complain
             if len(fun) < 2:

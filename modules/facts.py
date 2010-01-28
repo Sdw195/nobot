@@ -57,7 +57,6 @@ class Fact(command):
     def learn(self, text):
         regex = re.compile(r"\s*\[\s*([^\[\]]+)\s*\]\s+(.*)")
         match = regex.match(text)
-        self.bot.log.debug(match.groups())
         try:
             author = self.data.nick
             key, fact = match.groups("")

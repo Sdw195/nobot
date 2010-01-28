@@ -59,7 +59,6 @@ class HandleSeen(command):
     action = False
     def run(self, bot, data):
         if data.nick:
-            bot.log.debug(data.nick)
             db = RememberDB(bot)
             if data.event in ["PART", "QUIT"]:
                 if data.nick == bot.nick:
@@ -149,7 +148,6 @@ class RememberDB(Database):
         ## check if nick is already in db
         c.execute("SELECT nick FROM seen WHERE lower(nick) = ?", [nick.lower()])
         res = c.fetchone()
-        self.bot.log.debug(res)
         if not res:
             c.execute("INSERT INTO seen (nick, date) VALUES(?, 'now')", [nick])
         else:
