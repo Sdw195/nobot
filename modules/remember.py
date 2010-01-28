@@ -12,7 +12,7 @@ class Seen(command):
             return bot.say("You must specify a nick to query")
         if nick.lower() == data.origin.nick.lower():
             return bot.say("What! Really? That is a weird thing to ask for...")
-        if nick.lower == "george":
+        if nick.lower() == "george":
             return bot.say("Hah. Yeah right!")
         db = RememberDB(bot)
         try:
@@ -24,7 +24,7 @@ class Seen(command):
                 bot.say("%s is here now" % nick)
             else:
                 then = datetime.datetime.strptime(seen, "%Y-%m-%d %H:%M:%S")
-                now = datetime.datetime.now()
+                now = datetime.datetime.utcnow()
                 delta = now - then
                 ago = timedelta_to_string(delta)
                 bot.say("%s was last seen %s ago" % (nick, ago))
@@ -68,7 +68,7 @@ class HandleSeen(command):
                 if tells:
                     for tell in tells:
                         then = datetime.datetime.strptime(tell[4], "%Y-%m-%d %H:%M:%S")
-                        now = datetime.datetime.now()
+                        now = datetime.datetime.utcnow()
                         delta = now - then
                         ago = timedelta_to_string(delta)
                         bot.private("%s: %s said: \"%s\" %s ago" % \
