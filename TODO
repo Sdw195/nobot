@@ -37,3 +37,5 @@ INTERNAL
 -   Test: are we actually being authed properly?
 -   Generate html with anchors for all the terms
 -   Have cross referenced terms using hte {term} syntax in a fact
+-   Functions with exact matches still return all other mathces (see shpOrder, or sysFindObject)
+-   looking for facts (eg `pi') -> will return `pie', even if `pi' exists

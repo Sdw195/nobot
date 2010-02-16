@@ -51,4 +51,22 @@ class Func(command):
             else:
                 return bot.say("No results found")
 
+class Mod(command):
 
+    regex = r".*?(?:%(cmd)s\s+(\d+)|(m#\d+)).*"
+    triggers = [r"(?=m#\d+)"]
+    syntax = 'mod id | m#id'
+    example = "you can get my mod here m#111"
+    doc = " ".join(
+        [ "Print an url to the mod"
+        ])
+
+    def run(self, bot, data):
+        mid = None
+        if data.group(1):
+            mid = data.group(1)
+        elif data.group(2):
+            mid = data.group(2)[2:]
+        if mid:
+            modurl = "http://xelerus.de/index.php?s=mod&id=%s" % mid
+            bot.say("Mod #%s: %s" % (mid, modurl))
