@@ -243,7 +243,8 @@ class Nobot(irc.Bot):
                         self.dispatch(origin, (bytes, event, args))
 
                 ## stop looking for matches
-                break
+		if cmd.action: break
+                
 
 
     def load_module(self, module, filename=None, folder="modules", _reload=False):
