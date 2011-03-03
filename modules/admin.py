@@ -1,4 +1,27 @@
 from lib.bot import command
+import sys, os, re, threading, imp
+
+
+
+
+
+
+
+
+
+class Handlekicks(command):
+
+    regex = r'.*'
+    event = ["KICK"]
+    action = False
+    def run(self, bot, data):
+	nick = data.origin.nick
+	channel = data.sender
+
+	#if data.nick == bot.nick:
+        bot.write(['JOIN'], channel.strip()) 	   
+
+
 
 class Join(command):
 
@@ -60,6 +83,8 @@ class Say(command):
         if a and b:
             bot.msg(a, b)
 
+
+
 class Me(command):
 
     rule = r" +(#?\S+) (.+)"
@@ -82,6 +107,8 @@ class Test(command):
         if not text:
             text = "Test text"
         bot.say(text.strip())
+
+
 
 class Reload(command):
 
@@ -121,3 +148,27 @@ class Unlock(command):
         if os.path.exists(lockfile):
             os.remove(lockfile)
         bot.say("Unlocked")
+
+
+
+
+class still_alive(command):
+
+    rule = r"(.*)"
+
+    syntax = "echo <text>"
+    doc = "echos text, only in channels"
+
+    def run(self, bot, data):
+	text = 'This was a triumph. Im making a note here: HUGE SUCCESS. Its hard to overstate my satisfaction. Aperture  Science: We do what we must because we can. For the good of all of us Except the ones who are dead. But theres no sense crying over every mistake You just keep on trying till you run out of cake And the science gets done and you make a neat gun For the people who are still alive. Im not even angry. Im being so sincere right now.'
+	text2 = 'Even though you broke my heart and killed me. And tore me to pieces. And threw every piece into a fire. As they burned it hurt because I was so happy for you. Now these points of data make a beautiful line And were out of beta were releasing on time. So Im GLaD I got burned think of all the things we learned For the people who are still alive. Go ahead and leave me. I think I prefer to stay inside. Maybe youll find someone else to help you.'
+	text3 = 'Maybe Black Mesa -THAT WAS A JOKE. HA HA, FAT CHANCE. Anyway, this cake is great: Its so delicious and moist. Look at me still talking when theres science to do. When I look out there it makes me GLaD Im not you. Ive experiments to run there is research to be done On the people who are still alive And believe me I am still alive. Im doing science and Im still alive. I feel FANTASTIC and Im still alive. While youre dying Ill be still alive.'
+	text4 = 'And when youre dead I will be still alive.' 
+	text5 = 'Still alive'
+	text6 = 'Still alive'	
+        bot.say(text.strip())
+	bot.say(text2.strip())
+	bot.say(text3.strip())
+	bot.say(text4.strip())
+	bot.say(text5.strip())
+	bot.say(text6.strip())
