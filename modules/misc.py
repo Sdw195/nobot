@@ -4,6 +4,19 @@ import lib.irc as irc
 import random 
 import datetime
 
+class hogpie(command):
+
+    rule = r"(.*)"
+
+    syntax = ""
+    doc = ""
+
+    def run(self, bot, data):
+        
+       
+        text = "http://tobias-neumann.eu/tmp/piespy/hedgewars/hedgewars-current.png"
+        bot.say(text.strip())
+
 
 class when(command):
 
